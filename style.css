@@ -1,0 +1,136 @@
+:root {
+    --primary-pink: #ff85a2;
+    --soft-pink: #fbb1bd;
+    --dark-pink: #f25c7e;
+    --bg-gradient: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+    --shadow: 0 10px 30px rgba(242, 92, 126, 0.2);
+}
+
+body {
+    font-family: 'Tajawal', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--bg-gradient);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.page {
+    display: none;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}
+
+.page.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* بطاقة البيانات */
+.glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 30px;
+    padding: 40px 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+h1 { color: var(--dark-pink); font-weight: 900; }
+
+input {
+    width: 80%;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 15px;
+    border: 2px solid var(--soft-pink);
+    outline: none;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+input:focus { border-color: var(--dark-pink); }
+
+.btn-next {
+    background: var(--dark-pink);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 50px;
+    font-size: 18px;
+    cursor: pointer;
+    margin-top: 20px;
+    box-shadow: 0 5px 15px rgba(242, 92, 126, 0.4);
+}
+
+/* التنسيق العلوي */
+.top-nav {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 25px;
+    box-sizing: border-box;
+}
+
+.nav-icon {
+    background: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+    font-size: 20px;
+    color: var(--dark-pink);
+    cursor: pointer;
+}
+
+/* الزر الأحمر "الحقيقي" */
+.button-container {
+    margin-top: 50px;
+    display: flex;
+    justify-content: center;
+}
+
+.red-button {
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, #ff4d4d, #b30000);
+    border-radius: 50%;
+    border: 8px solid #333;
+    box-shadow: 
+        0 15px 0 #800000, 
+        0 20px 30px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: all 0.1s ease;
+    outline: none;
+    position: relative;
+}
+
+.red-button:active {
+    transform: translateY(10px);
+    box-shadow: 
+        0 5px 0 #800000, 
+        0 10px 15px rgba(0,0,0,0.2);
+}
+
+#status-text {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #555;
+    min-height: 27px;
+}
+
+#transcription {
+    font-weight: bold;
+    color: var(--dark-pink);
+    margin-top: 10px;
+    font-size: 20px;
+}

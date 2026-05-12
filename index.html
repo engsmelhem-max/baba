@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Order - طلبك بلمسة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- صفحة إدخال البيانات -->
+    <div id="step1" class="page active">
+        <div class="glass-card">
+            <h1>أهلاً بكِ ✨</h1>
+            <p>أدخلي بياناتكِ للبدء</p>
+            <input type="tel" id="phone" placeholder="رقم الهاتف" required>
+            <input type="text" id="address" placeholder="العنوان بالتفصيل" required>
+            <button class="btn-next" onclick="goToStep2()">استمرار</button>
+        </div>
+    </div>
+
+    <!-- صفحة الزر الصوتي -->
+    <div id="step2" class="page">
+        <header class="top-nav">
+            <button class="nav-icon" onclick="showHelp()">؟</button>
+            <button class="nav-icon" onclick="showHistory()">📋</button>
+        </header>
+
+        <div class="main-content">
+            <div id="status-text">اضغطي باستمرار للطلب...</div>
+            <div id="transcription"></div>
+            
+            <!-- الزر الأحمر التفاعلي -->
+            <div class="button-container">
+                <button id="voice-btn" class="red-button"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نوافذ منبثقة (Modals) -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
