@@ -1,7 +1,25 @@
 let recognition;
 let finalTranscript = "";
+// جلب الطلبات السابقة مع التأكد من الاحتفاظ بآخر 5 طلبات فقط
 let orders = JSON.parse(localStorage.getItem('myOrders')) || [];
+if (orders.length > 5) {
+    orders = orders.slice(-5);
+    localStorage.setItem('myOrders', JSON.stringify(orders));
+}
 let userLocationUrl = "لم يتم تحديد الموقع"; 
+
+// دالة تنفذ تلقائياً فور فتح الموقع لتعبئة البيانات السابقة إن وجدت
+window.onload = function() {
+    const savedPhone = localStorage.getItem('savedPhone');
+    const savedAddress = localStorage.getItem('savedAddress');
+    
+    if (savedPhone) {
+        document.getElementById('phone').value = savedPhone;
+    }
+    if (savedAddress) {
+        document.getElementById('address').value = savedAddress;
+    }
+};
 
 // 1. إعداد نظام التعرف على الصوت (Web Speech API)
 if ('webkitSpeechRecognition' in window) {
@@ -31,7 +49,6 @@ if ('webkitSpeechRecognition' in window) {
 function requestMicrophonePermission() {
     if (recognition) {
         try {
-            // تشغيل وإيقاف سريع جداً لإجبار المتصفح على طلب الإذن فوراً
             recognition.start();
             setTimeout(() => {
                 recognition.stop();
@@ -136,7 +153,13 @@ function sendToDashboard() {
     .then(response => response.json())
     .then(result => {
         if (result.created === 1) {
+            // إضافة الطلب الجديد للسجل المحلي
             orders.push({ date: new Date().toLocaleString('ar-JO'), text: orderText });
+            
+            // ميزة تحديد آخر 5 طلبات فقط وحذف الأقدم تلقائياً
+            if (orders.length > 5) {
+                orders = orders.slice(-5);
+            }
             localStorage.setItem('myOrders', JSON.stringify(orders));
             
             alert("تم إرسال طلبكِ وموقعكِ بنجاح! 🎉");
@@ -152,16 +175,19 @@ function sendToDashboard() {
     });
 }
 
-// 5. تعديل دالة الانتقال لطلب الموقع والمايكروفون فوراً
+// 5. دالة الانتقال وحفظ البيانات المدخلة وتنشيط الأذونات
 function goToStep2() {
     const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
 
     if(phone && address) {
+        // ميزة حفظ آخر إدخال في المتصفح ليعبأ تلقائياً في المرة القادمة
+        localStorage.setItem('savedPhone', phone);
+        localStorage.setItem('savedAddress', address);
+
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
         
-        // جلب الموقع وطلب إذن المايكروفون معاً فور دخول الصفحة الثانية
         requestLocation();
         requestMicrophonePermission();
     } else {
@@ -174,8 +200,8 @@ function showHelp() {
     const helpText = `
         <div style="text-align:right; font-family:'Tajawal', sans-serif;">
             <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق:</h3>
-            <p>1. أدخلي بياناتكِ في الصفحة الأولى واضغطي استمرار.</p>
-            <p>2. وافقي على أذونات المتصفح (الموقع والمايكروفون) لتفعيل ميزات التطبيق السحرية.</p>
+            <p>1. تأكدي من بياناتكِ في الصفحة الأولى واضغطي استمرار (سيتم حفظ بياناتكِ تلقائياً للمرات القادمة).</p>
+            <p>2. وافقي على أذونات المتصفح لتفعيل ميزات التطبيق السحرية.</p>
             <p>3. اضغطي مطولاً على الزر الأحمر، تحدثي بطلبكِ، ثم افلتي الزر وسيصلنا كل شيء فوراً!</p>
         </div>
     `;
@@ -184,9 +210,11 @@ function showHelp() {
 
 function showHistory() {
     let historyHtml = "<div style='text-align:right; font-family:\"Tajawal\", sans-serif;'>";
-    historyHtml += "<h3 style='color:#f25c7e; margin-top:0;'>📋 طلباتكِ السابقة:</h3>";
+    historyHtml += "<h3 style='color:#f25c7e; margin-top:0;'>📋 آخر 5 طلبات لكِ:</h3>";
     if (orders.length > 0) {
-        orders.forEach(order => {
+        // عكس الترتيب ليعرض الطلب الأحدث في الأعلى دائماً لراحة الزبونة
+        let displayOrders = [...orders].reverse();
+        displayOrders.forEach(order => {
             historyHtml += `
                 <div style='border-bottom:1px solid #ffe5ec; padding:12px 0;'>
                     <span style='color:#333; font-weight:bold;'>• ${order.text}</span><br>
