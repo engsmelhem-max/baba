@@ -1,13 +1,14 @@
 let recognition;
 let finalTranscript = "";
 let orders = JSON.parse(localStorage.getItem('myOrders')) || [];
+let userLocationUrl = "لم يتم تحديد الموقع"; // قيمة افتراضية في حال رفضت الزبونة مشاركة الموقع
 
 // 1. إعداد نظام التعرف على الصوت (Web Speech API)
 if ('webkitSpeechRecognition' in window) {
     recognition = new webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'ar-JO'; // تعيين اللهجة لتناسب الأردن لتكون دقيقة جداً
+    recognition.lang = 'ar-JO'; 
 
     recognition.onresult = (event) => {
         let interimTranscript = "";
@@ -18,28 +19,20 @@ if ('webkitSpeechRecognition' in window) {
                 interimTranscript += event.results[i][0].transcript;
             }
         }
-        // عرض النص أولاً بأول للزبونة أثناء حديثها بمرونة وسلاسة
         document.getElementById('transcription').innerText = finalTranscript + interimTranscript;
     };
 
     recognition.onerror = (event) => {
-        console.error("خطأ في التعرف على الصوت:", event.error);
-        if(event.error === 'not-allowed') {
-            alert("لطفاً، قومي بالسماح للموقع باستخدام المايكروفون من إعدادات المتصفح.");
-        }
+        console.error("خطأ في الصوت:", event.error);
     };
-} else {
-    alert("المتصفح الحالي لا يدعم ميزة الطلب الصوتي، يرجى استخدام متصفح Chrome أو Edge.");
 }
 
-// 2. ربط أحداث الزر الأحمر التفاعلي (الضغط والإفلات)
+// 2. ربط أحداث الزر الأحمر التفاعلي
 const voiceBtn = document.getElementById('voice-btn');
 
-// أحداث الكمبيوتر (الماوس)
 voiceBtn.addEventListener('mousedown', startRecording);
 voiceBtn.addEventListener('mouseup', stopAndSend);
 
-// أحداث الهواتف الذكية (اللمس) لمنع أي تعليق أو تداخل
 voiceBtn.addEventListener('touchstart', (e) => { 
     e.preventDefault(); 
     startRecording(); 
@@ -49,63 +42,77 @@ voiceBtn.addEventListener('touchend', (e) => {
     stopAndSend(); 
 });
 
-// دالة بدء التسجيل عند الضغط المستمر
 function startRecording() {
     finalTranscript = "";
     document.getElementById('transcription').innerText = "";
     document.getElementById('status-text').innerText = "جاري الاستماع لطلبكِ... 🎙️";
     try {
         recognition.start();
-    } catch (e) {
-        console.log("المايكروفون يعمل بالفعل");
-    }
+    } catch (e) {}
 }
 
-// دالة إيقاف التسجيل والإرسال التلقائي عند إفلات الزر
 function stopAndSend() {
     try {
         recognition.stop();
-    } catch (e) {
-        console.log("المايكروفون متوقف بالفعل");
-    }
+    } catch (e) {}
     
-    document.getElementById('status-text').innerText = "تمت عملية التسجيل! جاري الإرسال الآن...";
+    document.getElementById('status-text').innerText = "تمت عملية التسجيل! جاري الإرسال والتقاط الموقع...";
     
-    // تأخير بسيط لمدة ثانية لضمان تجميع الكلمات الأخيرة وإرسالها بشكل صحيح
+    // تأخير ثانية لضمان تجميع الكلام ثم الإرسال
     setTimeout(() => {
         sendToDashboard();
     }, 1000);
 }
 
-// 3. دالة إرسال البيانات إلى رابط SheetDB الخاص بكِ
+// 3. دالة جلب الموقع الجغرافي الدقيق وتحويله لرابط Google Maps
+function requestLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                // إنشاء رابط مباشر لخرائط جوجل بالإحداثيات الدقيقة
+                userLocationUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                console.log("تم تحديد الموقع بنجاح:", userLocationUrl);
+            },
+            (error) => {
+                console.error("خطأ في جلب الموقع:", error.message);
+                userLocationUrl = "الزبونة رفضت مشاركة الموقع أو الخدمة معطلة";
+            },
+            { enableHighAccuracy: true, timeout: 10000 } // تفعيل الدقة العالية (GPS)
+        );
+    } else {
+        userLocationUrl = "المتصفح لا يدعم تحديد الموقع";
+    }
+}
+
+// 4. دالة إرسال البيانات المحدثة لـ SheetDB
 function sendToDashboard() {
     const phoneInput = document.getElementById('phone').value;
     const addressInput = document.getElementById('address').value;
     const orderText = document.getElementById('transcription').innerText.trim();
 
-    // التحقق من أن الزبونة تحدثت بالفعل ولم تترك الزر فارغاً
     if (!orderText) {
         document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
         alert("لم يتم التقاط أي صوت، يرجى الضغط المطول والتحدث بطلبكِ 🌸");
         return;
     }
 
-    // الرابط المباشر الخاص بجدولكِ
     const sheetDbUrl = "https://sheetdb.io/api/v1/uk768ymhv9vyi"; 
 
-    // تجهيز البيانات لترسل وتتطابق مع الأعمدة (phone, address, order, time)
+    // تجهيز البيانات مضافاً إليها عمود الـ location الجديد
     const payload = {
         data: [
             {
                 phone: phoneInput,
                 address: addressInput,
                 order: orderText,
-                time: new Date().toLocaleString('ar-JO') // توقيت الأردن المحلي
+                time: new Date().toLocaleString('ar-JO'),
+                location: userLocationUrl // رابط خرائط جوجل المباشر
             }
         ]
     };
 
-    // إرسال البيانات برمجياً عبر الـ API
     fetch(sheetDbUrl, {
         method: "POST",
         headers: {
@@ -117,26 +124,23 @@ function sendToDashboard() {
     .then(response => response.json())
     .then(result => {
         if (result.created === 1) {
-            // حفظ الطلب في سجل المراجعة المحلي للزبونة (الزر العلوي اليمين)
             orders.push({ date: new Date().toLocaleString('ar-JO'), text: orderText });
             localStorage.setItem('myOrders', JSON.stringify(orders));
             
-            alert("تم إرسال طلبكِ بنجاح! وسنقوم بالتواصل معكِ فوراً 🎉");
+            alert("تم إرسال طلبكِ وموقعكِ بنجاح! 🎉");
             document.getElementById('transcription').innerText = "";
             document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
         } else {
-            alert("حدث خطأ غير متوقع أثناء إرسال الطلب، يرجى المحاولة مجدداً.");
-            document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
+            alert("حدث خطأ أثناء الإرسال، يرجى المحاولة مجدداً.");
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert("يرجى التحقق من اتصالكِ بالإنترنت والمحاولة مرة أخرى.");
-        document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
+        alert("يرجى التحقق من اتصالكِ بالإنترنت.");
     });
 }
 
-// 4. الانتقال السلس من الصفحة الأولى للثانية بعد التحقق من البيانات
+// 5. تعديل دالة الانتقال لطلب الموقع فور الانتقال لصفحة الزر
 function goToStep2() {
     const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
@@ -144,29 +148,30 @@ function goToStep2() {
     if(phone && address) {
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
+        
+        // نطلب الإذن بالموقع فوراً هنا لتكون الإحداثيات جاهزة عند الضغط على الزر الأحمر
+        requestLocation();
     } else {
         alert("لطفاً، أدخلي رقم الهاتف والعنوان أولاً لتتمكني من الطلب 💖");
     }
 }
 
-// 5. نافذة المساعدة (الزر العلوي اليسار "؟")
+// 6. باقي الدوال الخاصة بالمساعدة والطلبات السابقة والنوافذ المنبثقة
 function showHelp() {
     const helpText = `
         <div style="text-align:right; font-family:'Tajawal', sans-serif;">
             <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق:</h3>
-            <p>1. قومي بإدخال رقم هاتفك وعنوانكِ في الصفحة الأولى واضغطي استمرار.</p>
-            <p>2. في الصفحة التالية، <strong>اضغطي مطولاً بإصبعكِ على الزر الأحمر الكبير</strong> وتحدثي بطلبكِ مباشرة (مثلاً: أريد برغر دجاج مع بطاطا وعصير).</p>
-            <p>3. بمجرد أن <strong>تتوقفي عن الحديث وتفعلي إفلات للزر</strong>، سيقوم التطبيق بتحويل صوتكِ إلى كلمات وإرسال الطلب إلينا فوراً كالسحر!</p>
+            <p>1. أدخلي بياناتكِ في الصفحة الأولى واضغطي استمرار.</p>
+            <p>2. سيطلب منكِ المتصفح إذن مشاركة الموقع، يرجى الموافقة لضمان وصول الدليفري إليكِ بدقة.</p>
+            <p>3. اضغطي مطولاً على الزر الأحمر، تحدثي بطلبكِ، ثم افلتي الزر وسيصلنا كل شيء فوراً!</p>
         </div>
     `;
     openModal(helpText);
 }
 
-// 6. نافذة مراجعة الطلبات السابقة (الزر العلوي اليمين "📋")
 function showHistory() {
     let historyHtml = "<div style='text-align:right; font-family:\"Tajawal\", sans-serif;'>";
     historyHtml += "<h3 style='color:#f25c7e; margin-top:0;'>📋 طلباتكِ السابقة:</h3>";
-    
     if (orders.length > 0) {
         orders.forEach(order => {
             historyHtml += `
@@ -176,14 +181,12 @@ function showHistory() {
                 </div>`;
         });
     } else {
-        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن. ابدئي بطلبكِ الأول الآن! ✨</p>";
+        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</p>";
     }
-    
     historyHtml += "</div>";
     openModal(historyHtml);
 }
 
-// 7. التحكم بالنوافذ المنبثقة (Modals)
 function openModal(content) {
     document.getElementById('modal-body').innerHTML = content;
     document.getElementById('modal').style.display = "block";
@@ -193,7 +196,6 @@ function closeModal() {
     document.getElementById('modal').style.display = "none";
 }
 
-// إغلاق النافذة المنبثقة عند الضغط في أي مكان خارجها لراحة المستخدم
 window.onclick = function(event) {
     const modal = document.getElementById('modal');
     if (event.target == modal) {
