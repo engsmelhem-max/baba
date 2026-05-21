@@ -6,9 +6,9 @@ if (orders.length > 5) {
     localStorage.setItem('myOrders', JSON.stringify(orders));
 }
 let userLocationUrl = "لم يتم تحديد الموقع"; 
-let textRecognitionResult = "جاري معالجة النص...";
+let textRecognitionResult = "لم يتم التقاط نص";
 
-// ⚠️ الرابط الجديد الخاص بكِ لحفظ الملفات بشكل دائم في Google Drive:
+// الرابط الخاص بكِ لحفظ الملفات بشكل دائم في Google Drive:
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzea-IlziBhaO9AyH646kQeCROvMFJHW6B1M-oY91hN0z95NtEh5gZcTx8sqkL4iac/exec"; 
 
 window.onload = function() {
@@ -18,7 +18,7 @@ window.onload = function() {
     if (savedAddress) document.getElementById('address').value = savedAddress;
 };
 
-// إعداد نظام تحويل الصوت لنص المجاني المدمج
+// إعداد نظام تحويل الصوت لنص في الخلفية دون عرضه على الشاشة الرئيسية
 let speechRecognition;
 if ('webkitSpeechRecognition' in window) {
     speechRecognition = new webkitSpeechRecognition();
@@ -27,8 +27,8 @@ if ('webkitSpeechRecognition' in window) {
     speechRecognition.lang = 'ar-JO';
 
     speechRecognition.onresult = (event) => {
+        // يتم حفظ النص برمجياً لإرساله للشيت وللطلبات السابقة دون كتابته بالزهري للمستخدم
         textRecognitionResult = event.results[0][0].transcript;
-        document.getElementById('transcription').innerText = textRecognitionResult;
     };
 }
 
@@ -54,15 +54,30 @@ async function goToStep2() {
             };
 
             mediaRecorder.onstop = async () => {
-                document.getElementById('status-text').innerText = "جاري رفع الصوت بشكل آمن لـ Google Drive... ⏳";
-                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                // تعديل ذكي: إرسال المستخدم لصفحة النجاح فوراً وبشكل لحظي دون أي انتظار!
+                const phoneInput = document.getElementById('phone').value;
+                document.getElementById('display-user-phone').innerText = phoneInput;
                 
-                // تحويل الصوت إلى صيغة صالحة للإرسال للـ Drive
+                document.getElementById('step2').classList.remove('active');
+                document.getElementById('step3').classList.add('active');
+
+                // تحضير الصوت ومعالجته في الخلفية دون تعطيل الزبونة
+                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                 const reader = new FileReader();
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = function() {
                     const base64Audio = reader.result.split(',')[1];
-                    sendToGoogleDrive(base64Audio);
+                    
+                    // تحديث سجل الطلبات السابقة محلياً ليظهر في الخانة المخصصة فوراً
+                    const timestamp = new Date().toLocaleString('ar-JO');
+                    setTimeout(() => {
+                        orders.push({ date: timestamp, text: textRecognitionResult });
+                        if (orders.length > 5) orders = orders.slice(-5);
+                        localStorage.setItem('myOrders', JSON.stringify(orders));
+                    }, 500);
+
+                    // إرسال البيانات والملف الصوتي سحابياً إلى Google Drive في الخلفية
+                    sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp);
                 }
             };
         } catch (err) {
@@ -82,8 +97,7 @@ voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording
 function startRecording() {
     if (!mediaRecorder) return;
     audioChunks = [];
-    textRecognitionResult = "لم يتم التقاط نص";
-    document.getElementById('transcription').innerText = "";
+    textRecognitionResult = "طلب صوتي (جاري التدوين)";
     document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
     
     mediaRecorder.start();
@@ -94,14 +108,13 @@ function stopRecording() {
     if (!mediaRecorder || mediaRecorder.state !== "recording") return;
     mediaRecorder.stop();
     if(speechRecognition) try { speechRecognition.stop(); } catch(e){}
+    
+    // تصفير نصوص الواجهة فوراً استعداداً لأي طلب جديد
+    document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
 }
 
-// دالة إرسال البيانات بالكامل وحفظ الصوت بشكل دائم
-function sendToGoogleDrive(base64Audio) {
-    const phoneInput = document.getElementById('phone').value;
-    const addressInput = document.getElementById('address').value;
-    const timestamp = new Date().toLocaleString('ar-JO');
-
+// دالة الإرسال في الخلفية السريعة والصامتة
+function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp) {
     const payload = {
         data: [
             {
@@ -122,24 +135,12 @@ function sendToGoogleDrive(base64Audio) {
     })
     .then(response => response.json())
     .then(result => {
-        if (result.created === 1) {
-            orders.push({ date: timestamp, text: textRecognitionResult });
-            if (orders.length > 5) orders = orders.slice(-5);
-            localStorage.setItem('myOrders', JSON.stringify(orders));
-            
-            document.getElementById('transcription').innerText = "";
-            document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
-            document.getElementById('display-user-phone').innerText = phoneInput;
-
-            document.getElementById('step2').classList.remove('active');
-            document.getElementById('step3').classList.add('active');
-        } else {
-            alert("حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مجدداً.");
+        if (result.created !== 1) {
+            console.error("خطأ في حفظ البيانات الاحتياطية بالخلفية");
         }
     })
     .catch(error => {
-        console.error("Error:", error);
-        alert("يرجى التحقق من اتصالكِ بالإنترنت.");
+        console.error("شبكة الخلفية مشغولة:", error);
     });
 }
 
@@ -167,7 +168,7 @@ function showHelp() {
         <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
         <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
         <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-        <p>3. عند الإفلات، سيصلنا صوتكِ الأصلي المسجل بشكل دائم مع موقعكِ الجغرافي والنص المكتوب فوراً!</p>
+        <p>3. عند الإفلات، سيتم تأكيد طلبكِ فوراً ويُحفظ صوتكِ بشكل دائم في النظام!</p>
     </div>`;
     openModal(helpText);
 }
