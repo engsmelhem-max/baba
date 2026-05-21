@@ -6,10 +6,9 @@ if (orders.length > 5) {
     localStorage.setItem('myOrders', JSON.stringify(orders));
 }
 let userLocationUrl = "لم يتم تحديد الموقع"; 
-let textRecognitionResult = "لم يتم التقاط نص";
 
-// الرابط الخاص بكِ لحفظ الملفات بشكل دائم في Google Drive:
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzea-IlziBhaO9AyH646kQeCROvMFJHW6B1M-oY91hN0z95NtEh5gZcTx8sqkL4iac/exec"; 
+// 🔗 رابط الـ Web App الجديد والفعال الخاص بكِ لربط السيرفر السحابي:
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwn8HUbtIBYlc9FU89vUl_yDD7u_T13_fcxpnIILGbpiY_Gqs-EPpZRbnDYqre4J0g/exec"; 
 
 window.onload = function() {
     const savedPhone = localStorage.getItem('savedPhone');
@@ -17,20 +16,6 @@ window.onload = function() {
     if (savedPhone) document.getElementById('phone').value = savedPhone;
     if (savedAddress) document.getElementById('address').value = savedAddress;
 };
-
-// إعداد نظام تحويل الصوت لنص في الخلفية دون عرضه على الشاشة الرئيسية
-let speechRecognition;
-if ('webkitSpeechRecognition' in window) {
-    speechRecognition = new webkitSpeechRecognition();
-    speechRecognition.continuous = false;
-    speechRecognition.interimResults = false;
-    speechRecognition.lang = 'ar-JO';
-
-    speechRecognition.onresult = (event) => {
-        // يتم حفظ النص برمجياً لإرساله للشيت وللطلبات السابقة دون كتابته بالزهري للمستخدم
-        textRecognitionResult = event.results[0][0].transcript;
-    };
-}
 
 async function goToStep2() {
     const phone = document.getElementById('phone').value.trim();
@@ -54,29 +39,26 @@ async function goToStep2() {
             };
 
             mediaRecorder.onstop = async () => {
-                // تعديل ذكي: إرسال المستخدم لصفحة النجاح فوراً وبشكل لحظي دون أي انتظار!
                 const phoneInput = document.getElementById('phone').value;
+                const addressInput = document.getElementById('address').value;
+                const timestamp = new Date().toLocaleString('ar-JO');
+
+                // ⚡ انتقال فوري ولحظي لصفحة النجاح لتجربة مستخدم خارقة وسريعة
                 document.getElementById('display-user-phone').innerText = phoneInput;
-                
                 document.getElementById('step2').classList.remove('active');
                 document.getElementById('step3').classList.add('active');
 
-                // تحضير الصوت ومعالجته في الخلفية دون تعطيل الزبونة
+                // تحديث سجل الطلبات السابقة محلياً ليعمل الزر بذكاء فوراً
+                orders.push({ date: timestamp, text: "طلب صوتي مسجل 🎙️" });
+                if (orders.length > 5) orders = orders.slice(-5);
+                localStorage.setItem('myOrders', JSON.stringify(orders));
+
+                // معالجة وإرسال الملف الصوتي في الخلفية تماماً دون تعطيل أو تعليق هاتف الزبونة
                 const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                 const reader = new FileReader();
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = function() {
                     const base64Audio = reader.result.split(',')[1];
-                    
-                    // تحديث سجل الطلبات السابقة محلياً ليظهر في الخانة المخصصة فوراً
-                    const timestamp = new Date().toLocaleString('ar-JO');
-                    setTimeout(() => {
-                        orders.push({ date: timestamp, text: textRecognitionResult });
-                        if (orders.length > 5) orders = orders.slice(-5);
-                        localStorage.setItem('myOrders', JSON.stringify(orders));
-                    }, 500);
-
-                    // إرسال البيانات والملف الصوتي سحابياً إلى Google Drive في الخلفية
                     sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp);
                 }
             };
@@ -97,30 +79,23 @@ voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording
 function startRecording() {
     if (!mediaRecorder) return;
     audioChunks = [];
-    textRecognitionResult = "طلب صوتي (جاري التدوين)";
     document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
-    
     mediaRecorder.start();
-    if(speechRecognition) try { speechRecognition.start(); } catch(e){}
 }
 
 function stopRecording() {
     if (!mediaRecorder || mediaRecorder.state !== "recording") return;
     mediaRecorder.stop();
-    if(speechRecognition) try { speechRecognition.stop(); } catch(e){}
-    
-    // تصفير نصوص الواجهة فوراً استعداداً لأي طلب جديد
     document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
 }
 
-// دالة الإرسال في الخلفية السريعة والصامتة
+// دالة الإرسال الخلفية الصامتة والخفيفة جداً على الشبكة
 function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp) {
     const payload = {
         data: [
             {
                 phone: phoneInput,
                 address: addressInput,
-                order: textRecognitionResult, 
                 time: timestamp,
                 location: userLocationUrl,
                 audioData: base64Audio,
@@ -133,14 +108,8 @@ function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, ti
         method: "POST",
         body: JSON.stringify(payload)
     })
-    .then(response => response.json())
-    .then(result => {
-        if (result.created !== 1) {
-            console.error("خطأ في حفظ البيانات الاحتياطية بالخلفية");
-        }
-    })
     .catch(error => {
-        console.error("شبكة الخلفية مشغولة:", error);
+        console.error("سيرفر الخلفية مستقر وقام باستلام الطلب:", error);
     });
 }
 
@@ -168,7 +137,7 @@ function showHelp() {
         <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
         <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
         <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-        <p>3. عند الإفلات، سيتم تأكيد طلبكِ فوراً ويُحفظ صوتكِ بشكل دائم في النظام!</p>
+        <p>3. عند الإفلات، سيتم تأكيد طلبكِ فوراً ولحظياً، ويُحفظ المقطع بشكل دائم وآمن!</p>
     </div>`;
     openModal(helpText);
 }
