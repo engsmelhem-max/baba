@@ -8,6 +8,9 @@ if (orders.length > 5) {
 let userLocationUrl = "لم يتم تحديد الموقع"; 
 let textRecognitionResult = "جاري معالجة النص...";
 
+// ⚠️ الرابط الجديد الخاص بكِ لحفظ الملفات بشكل دائم في Google Drive:
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzea-IlziBhaO9AyH646kQeCROvMFJHW6B1M-oY91hN0z95NtEh5gZcTx8sqkL4iac/exec"; 
+
 window.onload = function() {
     const savedPhone = localStorage.getItem('savedPhone');
     const savedAddress = localStorage.getItem('savedAddress');
@@ -15,7 +18,7 @@ window.onload = function() {
     if (savedAddress) document.getElementById('address').value = savedAddress;
 };
 
-// إعداد نظام تحويل الصوت لنص المجاني المدمج ليعمل بالتوازي مع تسجيل الملف
+// إعداد نظام تحويل الصوت لنص المجاني المدمج
 let speechRecognition;
 if ('webkitSpeechRecognition' in window) {
     speechRecognition = new webkitSpeechRecognition();
@@ -42,7 +45,6 @@ async function goToStep2() {
         
         requestLocation();
         
-        // تفعيل المايكروفون للتسجيل
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
@@ -52,11 +54,16 @@ async function goToStep2() {
             };
 
             mediaRecorder.onstop = async () => {
-                document.getElementById('status-text').innerText = "جاري رفع الملف الصوتي وإرسال الطلب... ⏳";
+                document.getElementById('status-text').innerText = "جاري رفع الصوت بشكل آمن لـ Google Drive... ⏳";
                 const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                 
-                // رفع الصوت مجاناً والحصول على الرابط
-                uploadAudioAndSend(audioBlob);
+                // تحويل الصوت إلى صيغة صالحة للإرسال للـ Drive
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = function() {
+                    const base64Audio = reader.result.split(',')[1];
+                    sendToGoogleDrive(base64Audio);
+                }
             };
         } catch (err) {
             alert("يرجى منح إذن المايكروفون للتسجيل.");
@@ -89,83 +96,49 @@ function stopRecording() {
     if(speechRecognition) try { speechRecognition.stop(); } catch(e){}
 }
 
-// دالة رفع الصوت المجانية بالكامل وسريعة جداً
-function uploadAudioAndSend(audioBlob) {
-    const formData = new FormData();
-    formData.append("file", audioBlob, "voice-order.mp3");
-
-    // نستخدم خدمة tmpfiles.org الرفع المجانية والسريعة لملفات الـ MP3
-    fetch("https://tmpfiles.org/api/v1/upload", {
-        method: "POST",
-        body: formData
-    })
-    .then(response => response.json())
-    .then(result => {
-        // تحويل الرابط لرابط مباشر للتحميل والاستماع فوراً
-        if (result.data && result.data.url) {
-            let rawUrl = result.data.url;
-            let directAudioUrl = rawUrl.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
-            
-            // إرسال كل البيانات للـ Sheet وموقعها رابط الصوت!
-            sendToDashboard(directAudioUrl);
-        } else {
-            sendToDashboard("فشل رفع الصوت - تم إرسال النص فقط");
-        }
-    })
-    .catch(error => {
-        console.error("خطأ في الرفع:", error);
-        sendToDashboard("خطأ في شبكة رفع الصوت");
-    });
-}
-
-function sendToDashboard(audioUrl) {
+// دالة إرسال البيانات بالكامل وحفظ الصوت بشكل دائم
+function sendToGoogleDrive(base64Audio) {
     const phoneInput = document.getElementById('phone').value;
     const addressInput = document.getElementById('address').value;
-    const sheetDbUrl = "https://sheetdb.io/api/v1/uk768ymhv9vyi"; 
+    const timestamp = new Date().toLocaleString('ar-JO');
 
     const payload = {
         data: [
             {
                 phone: phoneInput,
                 address: addressInput,
-                order: textRecognitionResult, // النص المكتوب تلقائياً ومجاناً
-                time: new Date().toLocaleString('ar-JO'),
+                order: textRecognitionResult, 
+                time: timestamp,
                 location: userLocationUrl,
-                audio: audioUrl // رابط المقطع الصوتي لسماعه بضغطة زر!
+                audioData: base64Audio,
+                audioName: `voice-order-${phoneInput}-${Date.now()}.mp3`
             }
         ]
     };
 
-    fetch(sheetDbUrl, {
+    fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
         body: JSON.stringify(payload)
     })
     .then(response => response.json())
     .then(result => {
         if (result.created === 1) {
-            orders.push({ date: new Date().toLocaleString('ar-JO'), text: textRecognitionResult });
+            orders.push({ date: timestamp, text: textRecognitionResult });
             if (orders.length > 5) orders = orders.slice(-5);
             localStorage.setItem('myOrders', JSON.stringify(orders));
             
-            // إعادة تصفير واجهة التسجيل استعداداً لأي طلب لاحق
             document.getElementById('transcription').innerText = "";
             document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
-
-            // عرض رقم الهاتف الذي أدخلته الزبونة داخل صفحة النجاح المخصصة
             document.getElementById('display-user-phone').innerText = phoneInput;
 
-            // إخفاء صفحة الزر وتنشيط واجهة النجاح المخصصة بأنيميشن جميل
             document.getElementById('step2').classList.remove('active');
             document.getElementById('step3').classList.add('active');
         } else {
-            alert("حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مجدداً.");
+            alert("حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مجدداً.");
         }
     })
     .catch(error => {
+        console.error("Error:", error);
         alert("يرجى التحقق من اتصالكِ بالإنترنت.");
     });
 }
@@ -184,9 +157,7 @@ function requestLocation() {
     }
 }
 
-// دالة العودة الذكية لإرسال طلب جديد من البداية
 function resetToStep1() {
-    // إخفاء واجهة النجاح وتنشيط الصفحة الأولى مجدداً
     document.getElementById('step3').classList.remove('active');
     document.getElementById('step1').classList.add('active');
 }
@@ -196,7 +167,7 @@ function showHelp() {
         <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
         <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
         <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-        <p>3. عند الإفلات, سيصلنا صوتكِ الأصلي المسجل مع موقعكِ الجغرافي والنص المكتوب فوراً!</p>
+        <p>3. عند الإفلات، سيصلنا صوتكِ الأصلي المسجل بشكل دائم مع موقعكِ الجغرافي والنص المكتوب فوراً!</p>
     </div>`;
     openModal(helpText);
 }
