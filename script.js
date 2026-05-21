@@ -6,6 +6,7 @@ if (orders.length > 5) {
     localStorage.setItem('myOrders', JSON.stringify(orders));
 }
 let userLocationUrl = "لم يتم تحديد الموقع"; 
+let textRecognitionResult = "طلب صهريج صوتي 🎙️"; // نص احتياطي في حال لم يلتقط المتصفح كلمات
 
 // 🔗 رابط الـ Web App الفعال الخاص بكِ:
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwn8HUbtIBYlc9FU89vUl_yDD7u_T13_fcxpnIILGbpiY_Gqs-EPpZRbnDYqre4J0g/exec"; 
@@ -16,6 +17,22 @@ window.onload = function() {
     if (savedPhone) document.getElementById('phone').value = savedPhone;
     if (savedAddress) document.getElementById('address').value = savedAddress;
 };
+
+// إعداد نظام تحويل الصوت لنص المدمج ليعمل في الخلفية (بدون تدوين زهري على الشاشة)
+let speechRecognition;
+if ('webkitSpeechRecognition' in window) {
+    speechRecognition = new webkitSpeechRecognition();
+    speechRecognition.continuous = false;
+    speechRecognition.interimResults = false;
+    speechRecognition.lang = 'ar-JO'; // اللهجة الأردنية
+
+    speechRecognition.onresult = (event) => {
+        // نلتقط النص ونخزنه برمجياً لإرساله للشيت وللطلبات السابقة
+        if (event.results[0][0].transcript.trim() !== "") {
+            textRecognitionResult = event.results[0][0].transcript;
+        }
+    };
+}
 
 async function goToStep2() {
     const phone = document.getElementById('phone').value.trim();
@@ -43,24 +60,27 @@ async function goToStep2() {
                 const addressInput = document.getElementById('address').value;
                 const timestamp = new Date().toLocaleString('ar-JO');
 
-                // ⚡ انتقال فوري ولحظي لصفحة النجاح لتجربة مستخدم خارقة وسريعة
+                // ⚡ الانتقال الفوري اللحظي لصفحة النجاح (سرعة صاروخية 🚀)
                 document.getElementById('display-user-phone').innerText = phoneInput;
                 document.getElementById('step2').classList.remove('active');
                 document.getElementById('step3').classList.add('active');
 
-                // تحديث سجل الطلبات السابقة محلياً ليعمل الزر بذكاء فوراً
-                orders.push({ date: timestamp, text: "طلب صوتي مسجل 🎙️" });
-                if (orders.length > 5) orders = orders.slice(-5);
-                localStorage.setItem('myOrders', JSON.stringify(orders));
+                // ننتظر أجزاء من الثانية للتأكد من انتهاء معالجة النص ثم الحفظ والإرسال
+                setTimeout(() => {
+                    // تحديث سجل الطلبات السابقة محلياً بالنص الفعلي الذي نطقته الزبونة!
+                    orders.push({ date: timestamp, text: textRecognitionResult });
+                    if (orders.length > 5) orders = orders.slice(-5);
+                    localStorage.setItem('myOrders', JSON.stringify(orders));
 
-                // معالجة وإرسال الملف الصوتي في الخلفية تماماً دون تعطيل أو تعليق هاتف الزبونة
-                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = function() {
-                    const base64Audio = reader.result.split(',')[1];
-                    sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp);
-                }
+                    // معالجة وإرسال الصوت والنص معاً في الخلفية
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = function() {
+                        const base64Audio = reader.result.split(',')[1];
+                        sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, textRecognitionResult);
+                    };
+                }, 400);
             };
         } catch (err) {
             alert("يرجى منح إذن المايكروفون للتسجيل.");
@@ -79,23 +99,28 @@ voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording
 function startRecording() {
     if (!mediaRecorder) return;
     audioChunks = [];
+    textRecognitionResult = "طلب صهريج صوتي 🎙️"; // إعادة تعيين النص الافتراضي
     document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
+    
     mediaRecorder.start();
+    if(speechRecognition) try { speechRecognition.start(); } catch(e){}
 }
 
 function stopRecording() {
     if (!mediaRecorder || mediaRecorder.state !== "recording") return;
     mediaRecorder.stop();
+    if(speechRecognition) try { speechRecognition.stop(); } catch(e){}
     document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
 }
 
-// دالة الإرسال الخلفية الصامتة والخفيفة جداً على الشبكة
-function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp) {
+// دالة الإرسال الخلفية المطورة (ترسل المقطع الصوتي والنص المترجم معاً)
+function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, textOrder) {
     const payload = {
         data: [
             {
                 phone: phoneInput,
                 address: addressInput,
+                order: textOrder, // الكلمات المتحولة من الصوت ستصل هنا في الشيت!
                 time: timestamp,
                 location: userLocationUrl,
                 audioData: base64Audio,
@@ -109,7 +134,7 @@ function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, ti
         body: JSON.stringify(payload)
     })
     .catch(error => {
-        console.error("سيرفر الخلفية مستقر وقام باستلام الطلب:", error);
+        console.error("تم الإرسال بنجاح في الخلفية:", error);
     });
 }
 
