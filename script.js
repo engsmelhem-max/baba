@@ -151,9 +151,18 @@ function sendToDashboard(audioUrl) {
             if (orders.length > 5) orders = orders.slice(-5);
             localStorage.setItem('myOrders', JSON.stringify(orders));
             
-            alert("تم إرسال طلبكِ الصوتي بنجاح! 🎉");
+            // إعادة تصفير واجهة التسجيل استعداداً لأي طلب لاحق
             document.getElementById('transcription').innerText = "";
             document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
+
+            // عرض رقم الهاتف الذي أدخلته الزبونة داخل صفحة النجاح المخصصة
+            document.getElementById('display-user-phone').innerText = phoneInput;
+
+            // إخفاء صفحة الزر وتنشيط واجهة النجاح المخصصة بأنيميشن جميل
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+        } else {
+            alert("حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مجدداً.");
         }
     })
     .catch(error => {
@@ -175,12 +184,19 @@ function requestLocation() {
     }
 }
 
+// دالة العودة الذكية لإرسال طلب جديد من البداية
+function resetToStep1() {
+    // إخفاء واجهة النجاح وتنشيط الصفحة الأولى مجدداً
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step1').classList.add('active');
+}
+
 function showHelp() {
     const helpText = `<div style="text-align:right; font-family:'Tajawal', sans-serif;">
         <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
         <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
         <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-        <p>3. عند الإفلات، سيصلنا صوتكِ الأصلي المسجل مع موقعكِ الجغرافي والنص المكتوب فوراً!</p>
+        <p>3. عند الإفلات, سيصلنا صوتكِ الأصلي المسجل مع موقعكِ الجغرافي والنص المكتوب فوراً!</p>
     </div>`;
     openModal(helpText);
 }
