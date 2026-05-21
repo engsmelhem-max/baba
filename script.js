@@ -7,7 +7,7 @@ if (orders.length > 5) {
 }
 let userLocationUrl = "لم يتم تحديد الموقع"; 
 
-// 🔗 رابط الـ Web App الجديد والفعال الخاص بكِ لربط السيرفر السحابي:
+// 🔗 رابط الـ Web App الفعال الخاص بكِ:
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwn8HUbtIBYlc9FU89vUl_yDD7u_T13_fcxpnIILGbpiY_Gqs-EPpZRbnDYqre4J0g/exec"; 
 
 window.onload = function() {
