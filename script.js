@@ -36,31 +36,44 @@ if ('webkitSpeechRecognition' in window) {
 }
 
 async function goToStep2() {
-    const phone = document.getElementById('phone').value.trim();
-    const address = document.getElementById('address').value.trim();
+    // جلب العناصر برمجياً للتأكد من وجودها بنسبة 100%
+    const phoneInputEl = document.getElementById('phone');
+    const addressInputEl = document.getElementById('address');
+
+    if (!phoneInputEl || !addressInputEl) {
+        console.error("عناصر الإدخال غير موجودة في الـ HTML");
+        return;
+    }
+
+    const phone = phoneInputEl.value.trim();
+    const address = addressInputEl.value.trim();
     
     // الفحص الصارم لرقم الهاتف الأردني (10 أرقام ويبدأ بـ 07)
     const jordanPhoneRegex = /^07[0-9]{8}$/;
 
     // 1. حالة نسيان إدخال الحقول
     if (!phone || !address) {
-        if (document.activeElement) document.activeElement.blur(); // إخفاء الكيبورد فوراً
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur(); 
+        }
         setTimeout(() => {
             alert("لطفاً، أدخلي رقم الهاتف والعنوان أولاً لتتمكني من الطلب 💖");
-        }, 50);
+        }, 100);
         return;
     }
 
     // 2. حالة إدخال رقم خاطئ أو أقل من 10 أرقام أو لا يبدأ بـ 07
     if (!jordanPhoneRegex.test(phone)) {
-        if (document.activeElement) document.activeElement.blur(); // إخفاء الكيبورد فوراً وضمان نزوله لقاع الشاشة
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur(); 
+        }
         setTimeout(() => {
             alert("تنبيه: يجب أن يتكون رقم الهاتف من 10 أرقام بالضبط، وأن يبدأ إجبارياً بـ 07 (مثال: 07xxxxxxxx) 📱");
-        }, 50); // تأخير بسيط جداً بالملي ثانية للتأكد من اختفاء الكيبورد أولاً قبل ظهور المسج
+        }, 100); 
         return;
     }
 
-    // إذا كانت البيانات سليمة تماماً يستمر التطبيق للخطوة التالية
+    // إذا كانت البيانات سليمة تماماً، يتم الانتقال فوراً
     localStorage.setItem('savedPhone', phone);
     localStorage.setItem('savedAddress', address);
 
@@ -78,11 +91,11 @@ async function goToStep2() {
         };
 
         mediaRecorder.onstop = async () => {
-            const phoneInput = document.getElementById('phone').value;
-            const addressInput = document.getElementById('address').value;
+            const currentPhone = document.getElementById('phone').value;
+            const currentAddress = document.getElementById('address').value;
             const timestamp = new Date().toLocaleString('ar-JO');
 
-            document.getElementById('display-user-phone').innerText = phoneInput;
+            document.getElementById('display-user-phone').innerText = currentPhone;
             document.getElementById('step2').classList.remove('active');
             document.getElementById('step3').classList.add('active');
 
@@ -97,14 +110,14 @@ async function goToStep2() {
                     let finalOrderText = textRecognitionResult.trim();
                     
                     if (finalOrderText === "") {
-                        finalOrderText = "طلب صهريج (يرجى الاستماع للمقطع) 🎙️";
+                        finalOrderText = "طلب صوتی (يرجى الاستماع للمقطع) 🎙️";
                     }
 
                     orders.push({ date: timestamp, text: finalOrderText });
                     if (orders.length > 5) orders = orders.slice(-5);
                     localStorage.setItem('myOrders', JSON.stringify(orders));
 
-                    sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, finalOrderText);
+                    sendToGoogleDriveInBackground(base64Audio, currentPhone, currentAddress, timestamp, finalOrderText);
                 }, 1500);
             };
         };
@@ -114,10 +127,12 @@ async function goToStep2() {
 }
 
 const voiceBtn = document.getElementById('voice-btn');
-voiceBtn.addEventListener('mousedown', startRecording);
-voiceBtn.addEventListener('mouseup', stopRecording);
-voiceBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
-voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+if (voiceBtn) {
+    voiceBtn.addEventListener('mousedown', startRecording);
+    voiceBtn.addEventListener('mouseup', stopRecording);
+    voiceBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
+    voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+}
 
 function startRecording() {
     if (!mediaRecorder) return;
@@ -170,4 +185,51 @@ function requestLocation() {
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                userLocationUrl = `
+                userLocationUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            },
+            (error) => { userLocationUrl = "الزبونة رفضت مشاركة الموقع"; },
+            { enableHighAccuracy: true, timeout: 10000 } 
+        );
+    }
+}
+
+function resetToStep1() {
+    textRecognitionResult = ""; 
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step1').classList.add('active');
+}
+
+function showHelp() {
+    const helpText = `<div style="text-align:right; font-family:'Tajawal', sans-serif;">
+        <h3 style="color:#ff477e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
+        <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
+        <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
+        <p>3. عند الإفلات، سيتم تأكيد طلبكِ فوراً ولحظياً، ويُحفظ المقطع بشكل دائم وآمن!</p>
+    </div>`;
+    openModal(helpText);
+}
+
+function showHistory() {
+    let historyHtml = "<div style='text-align:right; font-family:\"Tajawal\", sans-serif;'>";
+    historyHtml += "<h3 style='color:#ff477e; margin-top:0;'>📋 آخر 5 طلبات لكِ:</h3>";
+    if (orders.length > 0) {
+        let displayOrders = [...orders].reverse();
+        displayOrders.forEach(order => {
+            historyHtml += `<div style='border-bottom:1px solid #fff0f3; padding:12px 0;'>
+                <span style='color:#333; font-weight:bold;'>• ${order.text}</span><br>
+                <small style='color:#aaa;'>${order.date}</small>
+            </div>`;
+        });
+    } else {
+        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</p>";
+    }
+    historyHtml += "</div>";
+    openModal(historyHtml);
+}
+
+function openModal(content) {
+    document.getElementById('modal-body').innerHTML = content;
+    document.getElementById('modal').style.display = "block";
+}
+function closeModal() { document.getElementById('modal').style.display = "none"; }
+window.onclick = function(event) { if (event.target == document.getElementById('modal')) closeModal(); }
