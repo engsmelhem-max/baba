@@ -3,64 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Order - طلبك بلمسة</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>لقمة - طلب ذكي وسريع</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #f25c7e;
+            --secondary-color: #ffe5ec;
+            --text-dark: #2b2d42;
+            --text-light: #fff;
+            --bg-gradient: linear-gradient(135deg, #fff0f3 0%, #ffe5ec 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-dark);
+            padding: 20px;
+        }
+
+        .app-container {
+            background: #ffffff;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(242, 92, 126, 0.15);
+            width: 100%;
+            max-width: 420px;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+            text-align: right;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary-color);
+            background-color: #fff0f3;
+        }
+
+        .btn-main {
+            background: var(--primary-color);
+            color: var(--text-light);
+            border: none;
+            padding: 14px 30px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 15px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(242, 92, 126, 0.3);
+        }
+
+        .btn-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(242, 92, 126, 0.4);
+        }
+
+        .voice-section {
+            padding: 40px 0;
+        }
+
+        .voice-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: none;
+            outline: none;
+            cursor: pointer;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(242, 92, 126, 0.4);
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .voice-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 5px 10px rgba(242, 92, 126, 0.2);
+        }
+
+        .voice-btn svg {
+            width: 50px;
+            height: 50px;
+            fill: var(--text-light);
+        }
+
+        .status-text {
+            font-size: 16px;
+            color: var(--text-dark);
+            font-weight: 500;
+            margin-top: 15px;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #2ecc71;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: #fff;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 15px;
+        }
+
+        .nav-link {
+            font-size: 14px;
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* تصميم المودال (النافذة المنبثقة) نظيف ومحمي */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 25px;
+            border-radius: 20px;
+            width: 85%;
+            max-width: 360px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: zoomIn 0.3s ease;
+        }
+
+        @keyframes zoomIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-dark);
+        }
+    </style>
 </head>
 <body>
 
-    <!-- صفحة إدخال البيانات -->
-    <div id="step1" class="page active">
-        <div class="glass-card">
-            <h1>أهلاً بكِ ✨</h1>
-            <p>أدخلي بياناتكِ للبدء</p>
-            <input type="tel" id="phone" placeholder="رقم الهاتف" required>
-            <input type="text" id="address" placeholder="العنوان بالتفصيل" required>
-            <button class="btn-next" onclick="goToStep2()">استمرار</button>
-        </div>
-    </div>
-
-    <!-- صفحة الزر الصوتي -->
-    <div id="step2" class="page">
-        <header class="top-nav">
-            <button class="nav-icon" onclick="showHelp()">؟</button>
-            <button class="nav-icon" onclick="showHistory()">📋</button>
-        </header>
-
-        <div class="main-content">
-            <div id="status-text">اضغطي باستمرار للطلب...</div>
-            <div id="transcription"></div>
+    <div class="app-container">
+        
+        <div id="step1" class="step active">
+            <div class="logo">لقمة 🌸</div>
+            <div class="subtitle">أدخلي بياناتكِ لتسهيل تلبية طلبكِ فوراً</div>
             
-            <!-- الزر الأحمر التفاعلي -->
-            <div class="button-container">
-                <button id="voice-btn" class="red-button"></button>
+            <div class="input-group">
+                <label for="phone">رقم الهاتف:</label>
+                <input 
+                    type="tel" 
+                    id="phone" 
+                    placeholder="مثال: 0790000000" 
+                    inputmode="numeric" 
+                    pattern="[0-9]*" 
+                    maxlength="10"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+                >
+            </div>
+            
+            <div class="input-group">
+                <label for="address">العنوان الكامل:</label>
+                <input type="text" id="address" placeholder="المحافظة، المنطقة، الشارع، البناية">
+            </div>
+            
+            <button class="btn-main" onclick="goToStep2()">استمرار</button>
+            
+            <div class="nav-links">
+                <span class="nav-link" onclick="showHistory()">📋 الطلبات السابقة</span>
+                <span class="nav-link" onclick="showHelp()">❓ كيف أطلب؟</span>
             </div>
         </div>
-    </div>
-    <div id="step3" class="page-step">
-    <div class="success-card">
-        <div class="success-icon-wrap">
-            <div class="success-icon">✓</div>
-        </div>
-        
-        <h2>تم استلام طلبكِ بنجاح! 🎉</h2>
-        <p class="success-msg">يسعدنا خدمتكِ، تم تسجيل طلبك الصوتي وموقعكِ بدقة في النظام.</p>
-        
-        <div class="phone-display-box">
-            <span>سوف نتواصل معكِ عند الوصول على الرقم:</span>
-            <strong id="display-user-phone">07xxxxxxx</strong>
-        </div>
-        
-        <button class="btn-primary back-home-btn" onclick="resetToStep1()">
-            إرسال طلب جديد 🌸
-        </button>
-    </div>
-</div>
 
-    <!-- نوافذ منبثقة (Modals) -->
+        <div id="step2" class="step">
+            <div class="logo">سجلي طلبكِ 🎙️</div>
+            <div class="subtitle">اضغطي بشكل مستمر وتحدثي براحتكِ</div>
+            
+            <div class="voice-section">
+                <button id="voice-btn" class="voice-btn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.42 2.72 6.2 6 6.72V21h2v-3.28c3.28-.52 6-3.3 6-6.72h-1.7z"/>
+                    </svg>
+                </button>
+                <div id="status-text" class="status-text">اضغطي باستمرار للطلب...</div>
+            </div>
+        </div>
+
+        <div id="step3" class="step">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </div>
+            <div class="logo" style="color: #2ecc71;">تم طلبكِ بنجاح!</div>
+            <p style="margin-top: 10px; color: #7f8c8d; font-size: 15px;">
+                شكراً لكِ، تم استلام تسجيلكِ الصوتي بأمان وجاري تجهيز الطلب للرقم: <br>
+                <strong id="display-user-phone" style="color: var(--text-dark); display: inline-block; margin-top: 5px;"></strong>
+            </p>
+            
+            <button class="btn-main" style="background: #2ecc71; margin-top: 25px; box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);" onclick="resetToStep1()">طلب جديد ✨</button>
+        </div>
+
+    </div>
+
     <div id="modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
+            <span class="modal-close" onclick="closeModal()">&times;</span>
             <div id="modal-body"></div>
         </div>
     </div>
