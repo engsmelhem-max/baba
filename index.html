@@ -2,18 +2,23 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>لقمة - طلب ذكي وسريع</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #f25c7e;
-            --secondary-color: #ffe5ec;
-            --text-dark: #2b2d42;
-            --text-light: #fff;
-            --bg-gradient: linear-gradient(135deg, #fff0f3 0%, #ffe5ec 100%);
+            --primary: #ff477e;
+            --primary-hover: #ff2a65;
+            --primary-light: #fff0f3;
+            --accent: #2ecc71;
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text-main: #1c1c1e;
+            --text-sub: #8e8e93;
+            --border-radius: 24px;
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         * {
@@ -21,221 +26,299 @@
             margin: 0;
             padding: 0;
             font-family: 'Tajawal', sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
         body {
-            background: var(--bg-gradient);
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(343,100%,96%,1) 0, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(343,100%,95%,1) 0, transparent 50%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: var(--text-dark);
+            color: var(--text-main);
             padding: 20px;
+            overflow-x: hidden;
         }
 
+        /* حاوية التطبيق الحركية */
         .app-container {
-            background: #ffffff;
-            border-radius: 30px;
-            box-shadow: 0 15px 35px rgba(242, 92, 126, 0.15);
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 30px 60px rgba(255, 71, 126, 0.06), 0 0 1px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 420px;
-            padding: 30px;
-            text-align: center;
+            max-width: 400px;
+            padding: 35px 30px;
             position: relative;
-            overflow: hidden;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
         }
 
+        /* حركات التبديل الديناميكية بين الخطوات */
         .step {
             display: none;
+            opacity: 0;
+            transform: scale(0.96) translateY(10px);
+            transition: var(--transition);
         }
 
         .step.active {
             display: block;
-            animation: fadeIn 0.4s ease-in-out;
+            opacity: 1;
+            transform: scale(1) translateY(0);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* الهوية البصرية الجرافيكية الحديثة */
         .logo {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 10px;
+            font-size: 36px;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+            position: relative;
+            display: inline-block;
         }
 
         .subtitle {
-            font-size: 16px;
-            color: #7f8c8d;
-            margin-bottom: 30px;
+            font-size: 15px;
+            color: var(--text-sub);
+            margin-bottom: 35px;
+            font-weight: 500;
+            line-height: 1.5;
         }
 
+        /* تصاميم خانات الإدخال العصرية */
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             text-align: right;
+            position: relative;
         }
 
         .input-group label {
             display: block;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 700;
             margin-bottom: 8px;
-            color: var(--text-dark);
+            color: var(--text-main);
+            padding-right: 4px;
         }
 
         .input-group input {
             width: 100%;
-            padding: 14px 20px;
-            border: 2px solid #f0f0f0;
-            border-radius: 15px;
+            padding: 16px 20px;
+            border: 2px solid #efeff4;
+            background: #fbfbfd;
+            border-radius: 16px;
             font-size: 16px;
-            transition: all 0.3s ease;
+            font-weight: 500;
+            color: var(--text-main);
+            transition: var(--transition);
             outline: none;
             text-align: right;
         }
 
         .input-group input:focus {
-            border-color: var(--primary-color);
-            background-color: #fff0f3;
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(255, 71, 126, 0.1);
         }
 
+        /* زر الاستمرار الانسيابي */
         .btn-main {
-            background: var(--primary-color);
-            color: var(--text-light);
+            background: var(--primary);
+            color: #fff;
             border: none;
-            padding: 14px 30px;
+            padding: 16px 30px;
             font-size: 18px;
             font-weight: 700;
-            border-radius: 15px;
+            border-radius: 16px;
             width: 100%;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(242, 92, 126, 0.3);
+            transition: var(--transition);
+            box-shadow: 0 10px 25px rgba(255, 71, 126, 0.2);
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-main:hover {
+            background: var(--primary-hover);
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(242, 92, 126, 0.4);
+            box-shadow: 0 12px 28px rgba(255, 71, 126, 0.3);
         }
 
+        .btn-main:active {
+            transform: translateY(0);
+        }
+
+        /* 🔘 تصميم الزر الميكانيكي الحقيقي المطور ثلاثي الأبعاد 🔘 */
         .voice-section {
-            padding: 40px 0;
+            padding: 30px 0 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* القاعدة الميكانيكية للزر */
+        .mechanical-btn-wrapper {
+            padding: 12px;
+            background: #e5e5ea;
+            border-radius: 50%;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.1), 0 2px 4px rgba(255,255,255,0.8);
+            margin-bottom: 25px;
         }
 
         .voice-btn {
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
-            background: var(--primary-color);
+            background: linear-gradient(135deg, #ff5e8e 0%, #ff2a65 100%);
             border: none;
             outline: none;
             cursor: pointer;
-            margin: 0 auto 20px;
+            position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 10px 25px rgba(242, 92, 126, 0.4);
-            transition: all 0.2s ease;
+            /* تأثير البروز الميكانيكي الحقيقي */
+            box-shadow: 
+                0 10px 0px #c41c47, 
+                0 15px 20px rgba(0, 0, 0, 0.2),
+                inset 0 2px 3px rgba(255,255,255,0.4);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* حركة الكبس الميكانيكية للداخل عند الضغط الفعلي */
         .voice-btn:active {
-            transform: scale(0.92);
-            box-shadow: 0 5px 10px rgba(242, 92, 126, 0.2);
+            transform: translateY(10px);
+            box-shadow: 
+                0 0px 0px #c41c47, 
+                0 4px 10px rgba(0, 0, 0, 0.15),
+                inset 0 4px 6px rgba(0,0,0,0.2);
         }
 
         .voice-btn svg {
-            width: 50px;
-            height: 50px;
-            fill: var(--text-light);
+            width: 52px;
+            height: 52px;
+            fill: #fff;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+            transition: var(--transition);
         }
 
+        /* حركة نبض خفيفة للزر أثناء التسجيل */
         .status-text {
             font-size: 16px;
-            color: var(--text-dark);
-            font-weight: 500;
-            margin-top: 15px;
+            color: var(--text-main);
+            font-weight: 700;
+            margin-top: 10px;
+            min-height: 24px;
+        }
+
+        /* صفحة النجاح المودرن */
+        .success-icon-wrap {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 25px;
         }
 
         .success-icon {
-            width: 80px;
-            height: 80px;
-            background: #2ecc71;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0 auto 20px;
-            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+            box-shadow: 0 10px 25px rgba(46, 204, 113, 0.3);
         }
 
         .success-icon svg {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             fill: #fff;
         }
 
+        /* روابط أسفل التطبيق */
         .nav-links {
             display: flex;
             justify-content: space-between;
-            margin-top: 25px;
-            border-top: 1px solid #f0f0f0;
-            padding-top: 15px;
+            margin-top: 30px;
+            border-top: 1px solid #efeff4;
+            padding-top: 20px;
         }
 
         .nav-link {
             font-size: 14px;
-            color: var(--primary-color);
+            color: var(--primary);
             cursor: pointer;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 700;
+            transition: var(--transition);
+            padding: 6px 12px;
+            border-radius: 10px;
         }
 
-        /* تصميم المودال (النافذة المنبثقة) نظيف ومحمي */
+        .nav-link:hover {
+            background: var(--primary-light);
+        }
+
+        /* تصميم النوافذ المنبثقة التفاعلية العصرية */
         .modal {
             display: none;
             position: fixed;
-            z-index: 100;
+            z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
+            background-color: rgba(28, 28, 30, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
         .modal-content {
-            background-color: #fff;
-            margin: 15% auto;
-            padding: 25px;
-            border-radius: 20px;
-            width: 85%;
-            max-width: 360px;
+            background-color: var(--card-bg);
+            margin: 0 auto;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 380px;
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            animation: zoomIn 0.3s ease;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.15);
+            animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes zoomIn {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+        @keyframes modalSlideUp {
+            from { transform: translateY(-40%) scale(0.95); opacity: 0; }
+            to { transform: translateY(-50%) scale(1); opacity: 1; }
         }
 
         .modal-close {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #aaa;
+            top: 20px;
+            left: 20px;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-sub);
             cursor: pointer;
-            transition: color 0.2s;
+            width: 32px;
+            height: 32px;
+            background: #f2f2f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            transition: var(--transition);
         }
 
         .modal-close:hover {
-            color: var(--text-dark);
+            background: #e5e5ea;
+            color: var(--text-main);
         }
     </style>
 </head>
@@ -245,10 +328,10 @@
         
         <div id="step1" class="step active">
             <div class="logo">لقمة 🌸</div>
-            <div class="subtitle">أدخلي بياناتكِ لتسهيل تلبية طلبكِ فوراً</div>
+            <div class="subtitle">تطبيقكِ الذكي للطلب الصوتي اللحظي السريع</div>
             
             <div class="input-group">
-                <label for="phone">رقم الهاتف:</label>
+                <label for="phone">رقم الهاتف</label>
                 <input 
                     type="tel" 
                     id="phone" 
@@ -261,8 +344,8 @@
             </div>
             
             <div class="input-group">
-                <label for="address">العنوان الكامل:</label>
-                <input type="text" id="address" placeholder="المحافظة، المنطقة، الشارع، البناية">
+                <label for="address">العنوان بالكامل</label>
+                <input type="text" id="address" placeholder="المحافظة، المنطقة، اسم الشارع، المعالم">
             </div>
             
             <button class="btn-main" onclick="goToStep2()">استمرار</button>
@@ -275,31 +358,35 @@
 
         <div id="step2" class="step">
             <div class="logo">سجلي طلبكِ 🎙️</div>
-            <div class="subtitle">اضغطي بشكل مستمر وتحدثي براحتكِ</div>
+            <div class="subtitle">اضغطي بشكل مستمر على الزر لأسفل وتحدثي</div>
             
             <div class="voice-section">
-                <button id="voice-btn" class="voice-btn">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.42 2.72 6.2 6 6.72V21h2v-3.28c3.28-.52 6-3.3 6-6.72h-1.7z"/>
-                    </svg>
-                </button>
+                <div class="mechanical-btn-wrapper">
+                    <button id="voice-btn" class="voice-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.42 2.72 6.2 6 6.72V21h2v-3.28c3.28-.52 6-3.3 6-6.72h-1.7z"/>
+                        </svg>
+                    </button>
+                </div>
                 <div id="status-text" class="status-text">اضغطي باستمرار للطلب...</div>
             </div>
         </div>
 
         <div id="step3" class="step">
-            <div class="success-icon">
-                <svg viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                </svg>
+            <div class="success-icon-wrap">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                </div>
             </div>
-            <div class="logo" style="color: #2ecc71;">تم طلبكِ بنجاح!</div>
-            <p style="margin-top: 10px; color: #7f8c8d; font-size: 15px;">
-                شكراً لكِ، تم استلام تسجيلكِ الصوتي بأمان وجاري تجهيز الطلب للرقم: <br>
-                <strong id="display-user-phone" style="color: var(--text-dark); display: inline-block; margin-top: 5px;"></strong>
+            <div class="logo" style="color: var(--accent);">تم الطلب بنجاح!</div>
+            <p style="margin-top: 12px; color: var(--text-sub); font-size: 15px; line-height: 1.6;">
+                شكراً لكِ، تم استلام تسجيلكِ الصوتي وجاري معالجة الطلب فوراً للرقم: <br>
+                <strong id="display-user-phone" style="color: var(--text-main); display: inline-block; margin-top: 6px; font-size: 17px; font-weight: 700;"></strong>
             </p>
             
-            <button class="btn-main" style="background: #2ecc71; margin-top: 25px; box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);" onclick="resetToStep1()">طلب جديد ✨</button>
+            <button class="btn-main" style="background: var(--accent); margin-top: 30px; box-shadow: 0 10px 25px rgba(46, 204, 113, 0.2);" onclick="resetToStep1()">طلب جديد ✨</button>
         </div>
 
     </div>
