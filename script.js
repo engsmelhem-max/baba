@@ -36,27 +36,31 @@ if ('webkitSpeechRecognition' in window) {
 }
 
 async function goToStep2() {
-    // ⚡ التعديل الجديد: إجبار الكيبورد على الاختفاء فوراً عند الضغط على الزر لتظهر الرسائل بوضوح
-    if (document.activeElement) {
-        document.activeElement.blur();
-    }
-
     const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
     
     // الفحص الصارم لرقم الهاتف الأردني (10 أرقام ويبدأ بـ 07)
     const jordanPhoneRegex = /^07[0-9]{8}$/;
 
+    // 1. حالة نسيان إدخال الحقول
     if (!phone || !address) {
-        alert("لطفاً، أدخلي رقم الهاتف والعنوان أولاً لتتمكني من الطلب 💖");
+        if (document.activeElement) document.activeElement.blur(); // إخفاء الكيبورد فوراً
+        setTimeout(() => {
+            alert("لطفاً، أدخلي رقم الهاتف والعنوان أولاً لتتمكني من الطلب 💖");
+        }, 50);
         return;
     }
 
+    // 2. حالة إدخال رقم خاطئ أو أقل من 10 أرقام أو لا يبدأ بـ 07
     if (!jordanPhoneRegex.test(phone)) {
-        alert("تنبيه: يجب أن يتكون رقم الهاتف من 10 أرقام بالضبط، وأن يبدأ إجبارياً بـ 07 (مثال: 07xxxxxxxx) 📱");
+        if (document.activeElement) document.activeElement.blur(); // إخفاء الكيبورد فوراً وضمان نزوله لقاع الشاشة
+        setTimeout(() => {
+            alert("تنبيه: يجب أن يتكون رقم الهاتف من 10 أرقام بالضبط، وأن يبدأ إجبارياً بـ 07 (مثال: 07xxxxxxxx) 📱");
+        }, 50); // تأخير بسيط جداً بالملي ثانية للتأكد من اختفاء الكيبورد أولاً قبل ظهور المسج
         return;
     }
 
+    // إذا كانت البيانات سليمة تماماً يستمر التطبيق للخطوة التالية
     localStorage.setItem('savedPhone', phone);
     localStorage.setItem('savedAddress', address);
 
@@ -166,51 +170,4 @@ function requestLocation() {
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                userLocationUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-            },
-            (error) => { userLocationUrl = "الزبونة رفضت مشاركة الموقع"; },
-            { enableHighAccuracy: true, timeout: 10000 } 
-        );
-    }
-}
-
-function resetToStep1() {
-    textRecognitionResult = ""; 
-    document.getElementById('step3').classList.remove('active');
-    document.getElementById('step1').classList.add('active');
-}
-
-function showHelp() {
-    const helpText = `<div style="text-align:right; font-family:'Tajawal', sans-serif;">
-        <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
-        <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
-        <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-        <p>3. عند الإفلات, سيتم تأكيد طلبكِ فوراً ولحظياً، ويُحفظ المقطع بشكل دائم وآمن!</p>
-    </div>`;
-    openModal(helpText);
-}
-
-function showHistory() {
-    let historyHtml = "<div style='text-align:right; font-family:\"Tajawal\", sans-serif;'>";
-    historyHtml += "<h3 style='color:#f25c7e; margin-top:0;'>📋 آخر 5 طلبات لكِ:</h3>";
-    if (orders.length > 0) {
-        let displayOrders = [...orders].reverse();
-        displayOrders.forEach(order => {
-            historyHtml += `<div style='border-bottom:1px solid #ffe5ec; padding:12px 0;'>
-                <span style='color:#333; font-weight:bold;'>• ${order.text}</span><br>
-                <small style='color:#aaa;'>${order.date}</small>
-            </div>`;
-        });
-    } else {
-        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</p>";
-    }
-    historyHtml += "</div>";
-    openModal(historyHtml);
-}
-
-function openModal(content) {
-    document.getElementById('modal-body').innerHTML = content;
-    document.getElementById('modal').style.display = "block";
-}
-function closeModal() { document.getElementById('modal').style.display = "none"; }
-window.onclick = function(event) { if (event.target == document.getElementById('modal')) closeModal(); }
+                userLocationUrl = `
