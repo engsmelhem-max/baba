@@ -36,11 +36,15 @@ if ('webkitSpeechRecognition' in window) {
 }
 
 async function goToStep2() {
+    // ⚡ التعديل الجديد: إجبار الكيبورد على الاختفاء فوراً عند الضغط على الزر لتظهر الرسائل بوضوح
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+
     const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
     
-    // ⛔ التعديل الجديد والصارم لفحص رقم الهاتف الأردني:
-    // الفحص يضمن أن يبدأ الرقم بـ 07 ويتبعه بالضبط 8 أرقام أخرى (المجموع 10 أرقام)
+    // الفحص الصارم لرقم الهاتف الأردني (10 أرقام ويبدأ بـ 07)
     const jordanPhoneRegex = /^07[0-9]{8}$/;
 
     if (!phone || !address) {
@@ -181,7 +185,7 @@ function showHelp() {
         <h3 style="color:#f25c7e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
         <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
         <p>2. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-        <p>3. عند الإفلات، سيتم تأكيد طلبكِ فوراً ولحظياً، ويُحفظ المقطع بشكل دائم وآمن!</p>
+        <p>3. عند الإفلات, سيتم تأكيد طلبكِ فوراً ولحظياً، ويُحفظ المقطع بشكل دائم وآمن!</p>
     </div>`;
     openModal(helpText);
 }
