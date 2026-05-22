@@ -6,7 +6,7 @@ if (orders.length > 5) {
     localStorage.setItem('myOrders', JSON.stringify(orders));
 }
 let userLocationUrl = "لم يتم تحديد الموقع"; 
-let textRecognitionResult = ""; // جعل النص الافتراضي فارغاً ليجبره على أخذ الكلمات الفعلية
+let textRecognitionResult = ""; 
 
 // 🔗 رابط الـ Web App الفعال الخاص بكِ:
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwn8HUbtIBYlc9FU89vUl_yDD7u_T13_fcxpnIILGbpiY_Gqs-EPpZRbnDYqre4J0g/exec"; 
@@ -24,7 +24,7 @@ if ('webkitSpeechRecognition' in window) {
     speechRecognition = new webkitSpeechRecognition();
     speechRecognition.continuous = false;
     speechRecognition.interimResults = false;
-    speechRecognition.lang = 'ar-JO'; // اللهجة الأردنية
+    speechRecognition.lang = 'ar-JO'; 
 
     speechRecognition.onresult = (event) => {
         if (event.results[0][0].transcript.trim() !== "") {
@@ -37,64 +37,68 @@ async function goToStep2() {
     const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
 
-    if(phone && address) {
-        localStorage.setItem('savedPhone', phone);
-        localStorage.setItem('savedAddress', address);
+    // ⛔ التعديل الجديد: فحص رقم الهاتف (يجب أن يكون أرقام فقط ومكون من 10 أرقام بالضبط)
+    const phoneRegex = /^[0-9]{10}$/;
 
-        document.getElementById('step1').classList.remove('active');
-        document.getElementById('step2').classList.add('active');
-        
-        requestLocation();
-        
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const phoneInput = document.getElementById('phone').value;
-                const addressInput = document.getElementById('address').value;
-                const timestamp = new Date().toLocaleString('ar-JO');
-
-                // ⚡ الانتقال الفوري اللحظي لصفحة النجاح (دون أي تأخير للمستخدم)
-                document.getElementById('display-user-phone').innerText = phoneInput;
-                document.getElementById('step2').classList.remove('active');
-                document.getElementById('step3').classList.add('active');
-
-                // تحضير ملف الصوت
-                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                
-                reader.onloadend = function() {
-                    const base64Audio = reader.result.split(',')[1];
-                    
-                    // تأخير ذكي لمدة 800 ملي ثانية للتأكد من أن المتصفح أتم ترجمة الصوت إلى نص بالكامل
-                    setTimeout(() => {
-                        // إذا فشل المتصفح تماماً في سماع أي كلمة، نضع نصاً احتياطياً واضحاً
-                        let finalOrderText = textRecognitionResult.trim();
-                        if (finalOrderText === "") {
-                            finalOrderText = "طلب صهريج (يرجى الاستماع للمقطع الصوتي) 🎙️";
-                        }
-
-                        // تحديث سجل الطلبات السابقة محلياً للزبونة
-                        orders.push({ date: timestamp, text: finalOrderText });
-                        if (orders.length > 5) orders = orders.slice(-5);
-                        localStorage.setItem('myOrders', JSON.stringify(orders));
-
-                        // إرسال البيانات النهائية والنص الفعلي إلى الـ Google Sheet في الخلفية
-                        sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, finalOrderText);
-                    }, 800);
-                };
-            };
-        } catch (err) {
-            alert("يرجى منح إذن المايكروفون للتسجيل.");
-        }
-    } else {
+    if (!phone || !address) {
         alert("لطفاً، أدخلي رقم الهاتف والعنوان أولاً لتتمكني من الطلب 💖");
+        return;
+    }
+
+    if (!phoneRegex.test(phone)) {
+        alert("تنبيه: يرجى إدخال رقم هاتف صحيح مكون من 10 أرقام (مثال: 07xxxxxxxx) 📱");
+        return;
+    }
+
+    // إذا كانت البيانات صحيحة، يستمر التطبيق كالمعتاد
+    localStorage.setItem('savedPhone', phone);
+    localStorage.setItem('savedAddress', address);
+
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    
+    requestLocation();
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            const phoneInput = document.getElementById('phone').value;
+            const addressInput = document.getElementById('address').value;
+            const timestamp = new Date().toLocaleString('ar-JO');
+
+            document.getElementById('display-user-phone').innerText = phoneInput;
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            
+            reader.onloadend = function() {
+                const base64Audio = reader.result.split(',')[1];
+                
+                setTimeout(() => {
+                    let finalOrderText = textRecognitionResult.trim();
+                    if (finalOrderText === "") {
+                        finalOrderText = "طلب صهريج (يرجى الاستماع للمقطع الصوتي) 🎙️";
+                    }
+
+                    orders.push({ date: timestamp, text: finalOrderText });
+                    if (orders.length > 5) orders = orders.slice(-5);
+                    localStorage.setItem('myOrders', JSON.stringify(orders));
+
+                    sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, finalOrderText);
+                }, 800);
+            };
+        };
+    } catch (err) {
+        alert("يرجى منح إذن المايكروفون للتسجيل.");
     }
 }
 
@@ -107,7 +111,7 @@ voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording
 function startRecording() {
     if (!mediaRecorder) return;
     audioChunks = [];
-    textRecognitionResult = ""; // تصفير النص عند كل تسجيل جديد
+    textRecognitionResult = ""; 
     document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
     
     mediaRecorder.start();
