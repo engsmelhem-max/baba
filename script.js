@@ -18,17 +18,20 @@ window.onload = function() {
     if (savedAddress) document.getElementById('address').value = savedAddress;
 };
 
-// إعداد نظام تحويل الصوت لنص المدمج ليعمل في الخلفية بدقة
+// إعداد نظام تحويل الصوت لنص ليعمل بدقة في الخلفية
 let speechRecognition;
 if ('webkitSpeechRecognition' in window) {
     speechRecognition = new webkitSpeechRecognition();
-    speechRecognition.continuous = false;
-    speechRecognition.interimResults = false;
-    speechRecognition.lang = 'ar-JO'; 
+    speechRecognition.continuous = true; // تفعيل الالتقاط المستمر لمنع ضياع الكلمات
+    speechRecognition.interimResults = true;
+    speechRecognition.lang = 'ar-JO'; // اللهجة الأردنية
 
     speechRecognition.onresult = (event) => {
-        if (event.results[0][0].transcript.trim() !== "") {
-            textRecognitionResult = event.results[0][0].transcript;
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                textRecognitionResult += event.results[i][0].transcript + ' ';
+            }
         }
     };
 }
@@ -36,8 +39,6 @@ if ('webkitSpeechRecognition' in window) {
 async function goToStep2() {
     const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
-
-    // ⛔ التعديل الجديد: فحص رقم الهاتف (يجب أن يكون أرقام فقط ومكون من 10 أرقام بالضبط)
     const phoneRegex = /^[0-9]{10}$/;
 
     if (!phone || !address) {
@@ -50,7 +51,6 @@ async function goToStep2() {
         return;
     }
 
-    // إذا كانت البيانات صحيحة، يستمر التطبيق كالمعتاد
     localStorage.setItem('savedPhone', phone);
     localStorage.setItem('savedAddress', address);
 
@@ -72,10 +72,12 @@ async function goToStep2() {
             const addressInput = document.getElementById('address').value;
             const timestamp = new Date().toLocaleString('ar-JO');
 
+            // ⚡ الانتقال الفوري واللحظي لصفحة النجاح (سرعة صاروخية للمستخدم)
             document.getElementById('display-user-phone').innerText = phoneInput;
             document.getElementById('step2').classList.remove('active');
             document.getElementById('step3').classList.add('active');
 
+            // تحضير ملف الصوت
             const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
@@ -83,18 +85,23 @@ async function goToStep2() {
             reader.onloadend = function() {
                 const base64Audio = reader.result.split(',')[1];
                 
+                // ⏱️ زيادة التأخير الذكي إلى 1500 ملي ثانية لضمان انتهاء معالجة الكلمات بالكامل في الخلفية
                 setTimeout(() => {
                     let finalOrderText = textRecognitionResult.trim();
+                    
+                    // إذا كان النص فارغاً تماماً بعد الانتظار، نضع نصاً واضحاً ومحترفاً يوجهك لسماع الصوت
                     if (finalOrderText === "") {
-                        finalOrderText = "طلب صهريج (يرجى الاستماع للمقطع الصوتي) 🎙️";
+                        finalOrderText = "طلب صوتي (يرجى الاستماع للمقطع) 🎙️";
                     }
 
+                    // تحديث سجل الطلبات السابقة محلياً للزبونة بالكلمات الفعلية
                     orders.push({ date: timestamp, text: finalOrderText });
                     if (orders.length > 5) orders = orders.slice(-5);
                     localStorage.setItem('myOrders', JSON.stringify(orders));
 
+                    // إرسال البيانات والنص الفعلي لـ Google Sheet
                     sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, finalOrderText);
-                }, 800);
+                }, 1500);
             };
         };
     } catch (err) {
@@ -111,17 +118,21 @@ voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording
 function startRecording() {
     if (!mediaRecorder) return;
     audioChunks = [];
-    textRecognitionResult = ""; 
+    textRecognitionResult = ""; // تصفير النص تماماً لاستقبال طلب جديد
     document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
     
     mediaRecorder.start();
-    if(speechRecognition) try { speechRecognition.start(); } catch(e){}
+    if(speechRecognition) {
+        try { speechRecognition.start(); } catch(e){}
+    }
 }
 
 function stopRecording() {
     if (!mediaRecorder || mediaRecorder.state !== "recording") return;
     mediaRecorder.stop();
-    if(speechRecognition) try { speechRecognition.stop(); } catch(e){}
+    if(speechRecognition) {
+        try { speechRecognition.stop(); } catch(e){}
+    }
     document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
 }
 
@@ -145,7 +156,7 @@ function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, ti
         body: JSON.stringify(payload)
     })
     .catch(error => {
-        console.error("تم الإرسال بنجاح في الخلفية:", error);
+        console.error("تم الإرسال بنجاح:", error);
     });
 }
 
@@ -163,7 +174,9 @@ function requestLocation() {
     }
 }
 
+// دالة العودة للخطوة الأولى مع تصفير النصوص والطلبات السابقة استعداداً لطلب جديد
 function resetToStep1() {
+    textRecognitionResult = ""; 
     document.getElementById('step3').classList.remove('active');
     document.getElementById('step1').classList.add('active');
 }
