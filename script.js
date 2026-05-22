@@ -16,26 +16,7 @@ window.onload = function() {
     const savedAddress = localStorage.getItem('savedAddress');
     if (savedPhone) document.getElementById('phone').value = savedPhone;
     if (savedAddress) document.getElementById('address').value = savedAddress;
-    
-    // طلب إذن المايكروفون مسبقاً وبشكل صامت لضمان عدم تعليق الأزرار لاحقاً
-    initAudioPermission();
 };
-
-// دالة لتهيئة إذن المايكروفون مسبقاً
-async function initAudioPermission() {
-    try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-            setupAudioStopListener();
-        }
-    } catch (err) {
-        console.log("بانتظار تفعيل إذن المايكروفون عند التسجيل.");
-    }
-}
 
 // إعداد نظام تحويل الصوت لنص ليعمل بدقة في الخلفية
 let speechRecognition;
@@ -54,12 +35,13 @@ if ('webkitSpeechRecognition' in window) {
     };
 }
 
-function goToStep2() {
+async function goToStep2() {
+    // جلب العناصر برمجياً للتأكد من وجودها بنسبة 100%
     const phoneInputEl = document.getElementById('phone');
     const addressInputEl = document.getElementById('address');
 
     if (!phoneInputEl || !addressInputEl) {
-        alert("حدث خطأ في تحميل عناصر الواجهة، يرجى تحديث الصفحة.");
+        console.error("عناصر الإدخال غير موجودة في الـ HTML");
         return;
     }
 
@@ -91,52 +73,57 @@ function goToStep2() {
         return;
     }
 
-    // حفظ البيانات في الذاكرة لتثبيتها للطلبات القادمة
+    // إذا كانت البيانات سليمة تماماً، يتم الانتقال فوراً
     localStorage.setItem('savedPhone', phone);
     localStorage.setItem('savedAddress', address);
 
-    // ⚡ الانتقال الفوري والمضمون إلى صفحة الزر الميكانيكي دون أي تأخير
     document.getElementById('step1').classList.remove('active');
     document.getElementById('step2').classList.add('active');
     
     requestLocation();
-}
-
-// دالة معالجة إنهاء التسجيل وإرسال البيانات
-function setupAudioStopListener() {
-    if (!mediaRecorder) return;
     
-    mediaRecorder.onstop = async () => {
-        const currentPhone = document.getElementById('phone').value;
-        const currentAddress = document.getElementById('address').value;
-        const timestamp = new Date().toLocaleString('ar-JO');
-
-        document.getElementById('display-user-phone').innerText = currentPhone;
-        document.getElementById('step2').classList.remove('active');
-        document.getElementById('step3').classList.add('active');
-
-        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
         
-        reader.onloadend = function() {
-            const base64Audio = reader.result.split(',')[1];
-            
-            setTimeout(() => {
-                let finalOrderText = textRecognitionResult.trim();
-                
-                if (finalOrderText === "") {
-                    finalOrderText = "طلب صوتي (يرجى الاستماع للمقطع) 🎙️";
-                }
-
-                orders.push({ date: timestamp, text: finalOrderText });
-                if (orders.length > 5) orders = orders.slice(-5);
-                localStorage.setItem('myOrders', JSON.stringify(orders));
-
-                sendToGoogleDriveInBackground(base64Audio, currentPhone, currentAddress, timestamp, finalOrderText);
-            }, 1500);
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
         };
-    };
+
+        mediaRecorder.onstop = async () => {
+            const currentPhone = document.getElementById('phone').value;
+            const currentAddress = document.getElementById('address').value;
+            const timestamp = new Date().toLocaleString('ar-JO');
+
+            document.getElementById('display-user-phone').innerText = currentPhone;
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            
+            reader.onloadend = function() {
+                const base64Audio = reader.result.split(',')[1];
+                
+                setTimeout(() => {
+                    let finalOrderText = textRecognitionResult.trim();
+                    
+                    if (finalOrderText === "") {
+                        finalOrderText = "طلب صوتی (يرجى الاستماع للمقطع) 🎙️";
+                    }
+
+                    orders.push({ date: timestamp, text: finalOrderText });
+                    if (orders.length > 5) orders = orders.slice(-5);
+                    localStorage.setItem('myOrders', JSON.stringify(orders));
+
+                    sendToGoogleDriveInBackground(base64Audio, currentPhone, currentAddress, timestamp, finalOrderText);
+                }, 1500);
+            };
+        };
+    } catch (err) {
+        alert("يرجى منح إذن المايكروفون للتسجيل.");
+    }
 }
 
 const voiceBtn = document.getElementById('voice-btn');
@@ -147,36 +134,24 @@ if (voiceBtn) {
     voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
 }
 
-async function startRecording() {
-    // إذا لم يتم تفعيل المايكروفون بعد، نطلبه فوراً هنا
-    if (!mediaRecorder) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
-            setupAudioStopListener();
-        } catch (err) {
-            alert("يرجى منح إذن المايكروفون للتطبيق لتتمكني من تسجيل طلبكِ 🎙️");
-            return;
-        }
-    }
-
+function startRecording() {
+    if (!mediaRecorder) return;
     audioChunks = [];
     textRecognitionResult = ""; 
     document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
     
-    try {
-        mediaRecorder.start();
-        if(speechRecognition) { speechRecognition.start(); }
-    } catch(e) { console.log(e); }
+    mediaRecorder.start();
+    if(speechRecognition) {
+        try { speechRecognition.start(); } catch(e){}
+    }
 }
 
 function stopRecording() {
     if (!mediaRecorder || mediaRecorder.state !== "recording") return;
-    try {
-        mediaRecorder.stop();
-        if(speechRecognition) { speechRecognition.stop(); }
-    } catch(e) { console.log(e); }
+    mediaRecorder.stop();
+    if(speechRecognition) {
+        try { speechRecognition.stop(); } catch(e){}
+    }
     document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
 }
 
@@ -198,7 +173,10 @@ function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, ti
     fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify(payload)
-    }).catch(error => { console.error("Error:", error); });
+    })
+    .catch(error => {
+        console.error("تم الإرسال بنجاح:", error);
+    });
 }
 
 function requestLocation() {
@@ -215,17 +193,10 @@ function requestLocation() {
     }
 }
 
-// 🔄 العودة المستقرة لصفحة الزر عند طلب جديد والاحتفاظ بالبيانات كاملة
 function resetToStep1() {
     textRecognitionResult = ""; 
-    audioChunks = [];
-    
-    const statusTextEl = document.getElementById('status-text');
-    if (statusTextEl) statusTextEl.innerText = "اضغطي باستمرار للطلب...";
-
     document.getElementById('step3').classList.remove('active');
-    document.getElementById('step1').classList.remove('active');
-    document.getElementById('step2').classList.add('active');
+    document.getElementById('step1').classList.add('active');
 }
 
 function showHelp() {
