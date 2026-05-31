@@ -9,8 +9,7 @@ let userLocationUrl = "لم يتم تحديد الموقع";
 let textRecognitionResult = ""; 
 let generatedOTP = ""; // لتخزين الرمز العشوائي الذي تم إنشاؤه
 
-// 📞 رَقْم الواتساب الخاص بكِ (إدارة لقمة) الذي ستصل إليه رموز التحقق والطلبات:
-// (اكتبي الرقم بالصيغة الدولية وبدون أصفار في البداية، مثال للأردن: 9627xxxxxxxx)
+// 📞 رَقْم الواتساب الخاص بكِ (إدارة لقمة) المحدث:
 const WHATSAPP_NUMBER = "962788814488"; 
 
 // 🔗 رابط الـ Web App الفعال الخاص بكِ:
@@ -178,4 +177,104 @@ async function startRecording() {
         }
     }
     audioChunks = [];
-    textRecognitionResult = "";
+    textRecognitionResult = ""; 
+    document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
+    try {
+        mediaRecorder.start();
+        if(speechRecognition) { speechRecognition.start(); }
+    } catch(e) { console.log(e); }
+}
+
+function stopRecording() {
+    if (!mediaRecorder || mediaRecorder.state !== "recording") return;
+    try {
+        mediaRecorder.stop();
+        if(speechRecognition) { speechRecognition.stop(); }
+    } catch(e) { console.log(e); }
+    document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
+}
+
+function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, textOrder) {
+    const payload = {
+        data: [
+            {
+                phone: phoneInput,
+                address: addressInput,
+                order: textOrder, 
+                time: timestamp,
+                location: userLocationUrl,
+                audioData: base64Audio,
+                audioName: `voice-order-${phoneInput}-${Date.now()}.mp3`
+            }
+        ]
+    };
+    fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) }).catch(error => { console.error("Error:", error); });
+}
+
+function requestLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                // تم تعديل الصياغة البرمجية للرابط هنا لتعمل بشكل سليم:
+                userLocationUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            },
+            (error) => { userLocationUrl = "الزبونة رفضت مشاركة الموقع"; },
+            { enableHighAccuracy: true, timeout: 10000 } 
+        );
+    }
+}
+
+function resetToStep1() {
+    textRecognitionResult = ""; 
+    audioChunks = [];
+    
+    const statusTextEl = document.getElementById('status-text');
+    if (statusTextEl) statusTextEl.innerText = "اضغطي باستمرار للطلب...";
+
+    document.getElementById('otp-area').style.display = "none";
+    document.getElementById('otp-area').style.opacity = "0";
+    document.getElementById('otp-code').value = "";
+    document.getElementById('btn-continue').style.display = "block";
+
+    document.getElementById('step3').classList.remove('active');
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+}
+
+function showHelp() {
+    const helpText = `<div style="text-align:right; font-family:'Tajawal', sans-serif;">
+        <h3 style="color:#ff477e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
+        <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
+        <p>2. أرسلي الرسالة التلقائية عبر الواتساب لتأكيد رقمكِ مجاناً.</p>
+        <p>3. ضعي الرمز في الموقع واضغطي تأكيد.</p>
+        <p>4. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
+    </div>`;
+    openModal(helpText);
+}
+
+function showHistory() {
+    let historyHtml = "<div style='text-align:right; font-family:\"Tajawal\", sans-serif;'>";
+    historyHtml += "<h3 style='color:#ff477e; margin-top:0;'>📋 آخر 5 طلبات لكِ:</h3>";
+    if (orders.length > 0) {
+        let displayOrders = [...orders].reverse();
+        displayOrders.forEach(order => {
+            historyHtml += `<div style='border-bottom:1px solid #fff0f3; padding:12px 0;'>
+                <span style='color:#333; font-weight:bold;'>• ${order.text}</span><br>
+                <small style='color:#aaa;'>${order.date}</small>
+            </div>`;
+        });
+    } else {
+        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</p>";
+    }
+    historyHtml += "</div>";
+    openModal(historyHtml);
+}
+
+function openModal(content) {
+    document.getElementById('modal-body').innerHTML = content;
+    document.getElementById('modal').style.display = "block";
+}
+function closeModal() { document.getElementById('modal').style.display = "none"; }
+window.onclick = function(event) { if (event.target == document.getElementById('modal')) closeModal(); }
