@@ -11,7 +11,7 @@ let generatedOTP = ""; // لتخزين الرمز العشوائي الذي تم
 
 // 📞 رَقْم الواتساب الخاص بكِ (إدارة لقمة) الذي ستصل إليه رموز التحقق والطلبات:
 // (اكتبي الرقم بالصيغة الدولية وبدون أصفار في البداية، مثال للأردن: 9627xxxxxxxx)
-const WHATSAPP_NUMBER = "962790000000"; 
+const WHATSAPP_NUMBER = "962788814488"; 
 
 // 🔗 رابط الـ Web App الفعال الخاص بكِ:
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwn8HUbtIBYlc9FU89vUl_yDD7u_T13_fcxpnIILGbpiY_Gqs-EPpZRbnDYqre4J0g/exec"; 
