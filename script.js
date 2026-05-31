@@ -24,23 +24,43 @@ window.onload = function() {
     initAudioPermission();
 };
 
+// تحديد صيغة الصوت المناسبة للجهاز المتصفح (مهم جداً للآيفون)
+function getSupportedMimeType() {
+    const types = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/wav'];
+    for (let type of types) {
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+            return type;
+        }
+    }
+    return ''; // لترك المتصفح يختار الصيغة التلقائية المتاحة لديه
+}
+
 async function initAudioPermission() {
     try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
+            const options = {};
+            const mimeType = getSupportedMimeType();
+            if (mimeType) options.mimeType = mimeType;
+
+            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder.ondataavailable = (event) => { 
+                if (event.data && event.data.size > 0) {
+                    audioChunks.push(event.data); 
+                }
+            };
             setupAudioStopListener();
         }
     } catch (err) {
-        console.log("بانتظار تفعيل إذن المايكروفون عند التسجيل.");
+        console.log("بانتظار تفعيل إذن المايكروفون عند التسجيل أو المتصفح لا يدعم التسجيل المباشر.");
     }
 }
 
 // إعداد نظام تحويل الصوت لنص ليعمل بدقة في الخلفية
 let speechRecognition;
-if ('webkitSpeechRecognition' in window) {
-    speechRecognition = new webkitSpeechRecognition();
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    speechRecognition = new SpeechConstructor();
     speechRecognition.continuous = true; 
     speechRecognition.interimResults = true;
     speechRecognition.lang = 'ar-JO'; 
@@ -95,7 +115,7 @@ function goToStep2() {
         otpArea.style.transform = "translateY(0)";
     }, 50);
 
-    // 4️⃣ فتح الواتساب تلقائياً للزبونة لإرسال الرمز وتأكيد هويتها فوراً ومجاناً
+    // 4️⃣ فتح الواتساب تلقائياً للزبونة لإرسال الرمز وتأكيد هوية المستخدم
     setTimeout(() => {
         window.open(whatsappUrl, '_blank');
     }, 400);
@@ -137,7 +157,9 @@ function setupAudioStopListener() {
         document.getElementById('step2').classList.remove('active');
         document.getElementById('step3').classList.add('active');
 
-        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+        // تحديد نوع الامتداد المستخرج ديناميكياً بناءً على ما يدعمه المتصفح
+        const currentMimeType = mediaRecorder.mimeType || 'audio/wav';
+        const audioBlob = new Blob(audioChunks, { type: currentMimeType });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         
@@ -149,7 +171,14 @@ function setupAudioStopListener() {
                 orders.push({ date: timestamp, text: finalOrderText });
                 if (orders.length > 5) orders = orders.slice(-5);
                 localStorage.setItem('myOrders', JSON.stringify(orders));
-                sendToGoogleDriveInBackground(base64Audio, currentPhone, currentAddress, timestamp, finalOrderText);
+                
+                // تحديد الامتداد المناسب لاسم الملف المرفوع لجوجل درايف
+                let extension = "wav";
+                if(currentMimeType.includes("webm")) extension = "webm";
+                else if(currentMimeType.includes("mp4")) extension = "mp4";
+                else if(currentMimeType.includes("ogg")) extension = "ogg";
+
+                sendToGoogleDriveInBackground(base64Audio, currentPhone, currentAddress, timestamp, finalOrderText, extension);
             }, 1500);
         };
     };
@@ -157,112 +186,36 @@ function setupAudioStopListener() {
 
 const voiceBtn = document.getElementById('voice-btn');
 if (voiceBtn) {
+    // أحداث الماوس للكمبيوتر
     voiceBtn.addEventListener('mousedown', startRecording);
     voiceBtn.addEventListener('mouseup', stopRecording);
-    voiceBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
-    voiceBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+    
+    // أحداث اللمس للموبايل (تم تعديلها لمنع المشاكل وتعطيل القوائم المنبثقة)
+    voiceBtn.addEventListener('touchstart', (e) => { 
+        if(e.cancelable) e.preventDefault(); 
+        startRecording(); 
+    }, { passive: false });
+    
+    voiceBtn.addEventListener('touchend', (e) => { 
+        if(e.cancelable) e.preventDefault(); 
+        stopRecording(); 
+    }, { passive: false });
 }
 
 async function startRecording() {
-    if (!mediaRecorder) {
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
+            const options = {};
+            const mimeType = getSupportedMimeType();
+            if (mimeType) options.mimeType = mimeType;
+
+            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder.ondataavailable = (event) => { 
+                if (event.data && event.data.size > 0) {
+                    audioChunks.push(event.data); 
+                }
+            };
             setupAudioStopListener();
         } catch (err) {
             alert("يرجى منح إذن المايكروفون للتطبيق لتتمكني من تسجيل طلبكِ 🎙️");
-            return;
-        }
-    }
-    audioChunks = [];
-    textRecognitionResult = ""; 
-    document.getElementById('status-text').innerText = "جاري تسجيل صوتكِ بجودة واضحة... 🎙️";
-    try {
-        mediaRecorder.start();
-        if(speechRecognition) { speechRecognition.start(); }
-    } catch(e) { console.log(e); }
-}
-
-function stopRecording() {
-    if (!mediaRecorder || mediaRecorder.state !== "recording") return;
-    try {
-        mediaRecorder.stop();
-        if(speechRecognition) { speechRecognition.stop(); }
-    } catch(e) { console.log(e); }
-    document.getElementById('status-text').innerText = "اضغطي باستمرار للطلب...";
-}
-
-function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, timestamp, textOrder) {
-    const payload = {
-        data: [
-            {
-                phone: phoneInput,
-                address: addressInput,
-                order: textOrder, 
-                time: timestamp,
-                location: userLocationUrl,
-                audioData: base64Audio,
-                audioName: `voice-order-${phoneInput}-${Date.now()}.mp3`
-            }
-        ]
-    };
-    fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) }).catch(error => { console.error("Error:", error); });
-}
-
-//  تم إصلاح الدالة بالكامل وتعديل رابط الخريطة ليعمل بشكل سليم وبدون توقف:
-function requestLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                userLocationUrl = `https://maps.google.com/?q=${lat},${lng}`;
-            },
-            (error) => { userLocationUrl = "الزبونة رفضت مشاركة الموقع"; },
-            { enableHighAccuracy: true, timeout: 10000 } 
-        );
-    }
-}
-
-function resetToStep1() {
-    textRecognitionResult = ""; 
-    audioChunks = [];
-    
-    const statusTextEl = document.getElementById('status-text');
-    if (statusTextEl) statusTextEl.innerText = "اضغطي باستمرار للطلب...";
-
-    document.getElementById('otp-area').style.display = "none";
-    document.getElementById('otp-area').style.opacity = "0";
-    document.getElementById('otp-code').value = "";
-    document.getElementById('btn-continue').style.display = "block";
-
-    document.getElementById('step3').classList.remove('active');
-    document.getElementById('step1').classList.remove('active');
-    document.getElementById('step2').classList.add('active');
-}
-
-function showHelp() {
-    const helpText = `<div style="text-align:right; font-family:'Tajawal', sans-serif;">
-        <h3 style="color:#ff477e; margin-top:0;"> آلية عمل التطبيق المطور:</h3>
-        <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
-        <p>2. أرسلي الرسالة التلقائية عبر الواتساب لتأكيد رقمكِ مجاناً.</p>
-        <p>3. ضعي الرمز في الموقع واضغطي تأكيد.</p>
-        <p>4. اضغطي مطولاً وسجلي طلبكِ بصوتكِ براحتكِ.</p>
-    </div>`;
-    openModal(helpText);
-}
-
-function showHistory() {
-    let historyHtml = "<div style='text-align:right; font-family:\"Tajawal\", sans-serif;'>";
-    historyHtml += "<h3 style='color:#ff477e; margin-top:0;'>📋 آخر 5 طلبات لكِ:</h3>";
-    if (orders.length > 0) {
-        let displayOrders = [...orders].reverse();
-        displayOrders.forEach(order => {
-            historyHtml += `<div style='border-bottom:1px solid #fff0f3; padding:12px 0;'>
-                <span style='color:#333; font-weight:bold;'>• ${order.text}</span><br>
-                <small style='color:#aaa;'>${order.date}</small>
-            </div>`;
-        });
-    } else {
-        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</
