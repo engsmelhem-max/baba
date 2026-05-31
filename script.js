@@ -9,7 +9,7 @@ let userLocationUrl = "لم يتم تحديد الموقع";
 let textRecognitionResult = ""; 
 let generatedOTP = ""; // لتخزين الرمز العشوائي الذي تم إنشاؤه
 
-// 📞 رَقْم الواتساب الخاص بكِ (إدارة لقمة) المحدث:
+// 📞 رَقْم الواتساب الخاص بكِ (إدارة لقمة):
 const WHATSAPP_NUMBER = "962788814488"; 
 
 // 🔗 رابط الـ Web App الفعال الخاص بكِ:
@@ -126,7 +126,6 @@ function verifyOTPAndProceed() {
     requestLocation();
 }
 
-// باقي الكود البرمجي الأصلي للموقع دون أي تعديل لضمان العمل بكفاءة:
 function setupAudioStopListener() {
     if (!mediaRecorder) return;
     mediaRecorder.onstop = async () => {
@@ -211,14 +210,14 @@ function sendToGoogleDriveInBackground(base64Audio, phoneInput, addressInput, ti
     fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) }).catch(error => { console.error("Error:", error); });
 }
 
+//  تم إصلاح الدالة بالكامل وتعديل رابط الخريطة ليعمل بشكل سليم وبدون توقف:
 function requestLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                // تم تعديل الصياغة البرمجية للرابط هنا لتعمل بشكل سليم:
-                userLocationUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                userLocationUrl = `https://maps.google.com/?q=${lat},${lng}`;
             },
             (error) => { userLocationUrl = "الزبونة رفضت مشاركة الموقع"; },
             { enableHighAccuracy: true, timeout: 10000 } 
@@ -245,7 +244,7 @@ function resetToStep1() {
 
 function showHelp() {
     const helpText = `<div style="text-align:right; font-family:'Tajawal', sans-serif;">
-        <h3 style="color:#ff477e; margin-top:0;">🌸 آلية عمل التطبيق المطور:</h3>
+        <h3 style="color:#ff477e; margin-top:0;"> آلية عمل التطبيق المطور:</h3>
         <p>1. أدخلي بياناتكِ واضغطي استمرار.</p>
         <p>2. أرسلي الرسالة التلقائية عبر الواتساب لتأكيد رقمكِ مجاناً.</p>
         <p>3. ضعي الرمز في الموقع واضغطي تأكيد.</p>
@@ -266,15 +265,4 @@ function showHistory() {
             </div>`;
         });
     } else {
-        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</p>";
-    }
-    historyHtml += "</div>";
-    openModal(historyHtml);
-}
-
-function openModal(content) {
-    document.getElementById('modal-body').innerHTML = content;
-    document.getElementById('modal').style.display = "block";
-}
-function closeModal() { document.getElementById('modal').style.display = "none"; }
-window.onclick = function(event) { if (event.target == document.getElementById('modal')) closeModal(); }
+        historyHtml += "<p style='color:#777;'>لا توجد لديكِ طلبات سابقة حتى الآن.</
